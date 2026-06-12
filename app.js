@@ -151,27 +151,7 @@ function loadData() {
     if (saved) {
         try {
             state.scores = JSON.parse(saved);
-            if (!state.scores || typeof state.scores !== 'object') {
-                resetScoresObject();
-            }
-            // Verify structure has all games and sanitize old/malformed records
-            for (let i = 1; i <= 4; i++) {
-                if (!state.scores[i] || !Array.isArray(state.scores[i])) {
-                    state.scores[i] = [];
-                } else {
-                    const gNum = i.toString();
-                    const gName = getActiveGameName(gNum);
-                    if (gName === 'Fishing') {
-                        state.scores[i] = state.scores[i].filter(item => item && item.isFishing);
-                    } else if (checkIfPoleGame(gNum, state.activeCategory)) {
-                        state.scores[i] = state.scores[i].filter(item => item && item.isPole);
-                    } else if (checkIfMatchupGame(gNum, state.activeCategory)) {
-                        state.scores[i] = state.scores[i].filter(item => item && item.teamA && !item.isPole);
-                    } else {
-                        state.scores[i] = state.scores[i].filter(item => item && item.name);
-                    }
-                }
-            }
+            sanitizeScores();
         } catch (e) {
             console.error('Error parsing stored scores, initializing empty state', e);
             resetScoresObject();
@@ -212,6 +192,35 @@ function loadData() {
 
 function resetScoresObject() {
     state.scores = { "1": [], "2": [], "3": [], "4": [] };
+}
+
+// Sanitize and verify structure has all games
+function sanitizeScores() {
+    if (!state.scores || typeof state.scores !== 'object' || Array.isArray(state.scores)) {
+        state.scores = { "1": [], "2": [], "3": [], "4": [] };
+    }
+    for (let i = 1; i <= 4; i++) {
+        if (!state.scores[i] || !Array.isArray(state.scores[i])) {
+            state.scores[i] = [];
+        } else {
+            const gNum = i.toString();
+            const gName = getActiveGameName(gNum);
+            if (gName === 'Fishing') {
+                state.scores[i] = state.scores[i].filter(item => item && item.isFishing);
+            } else if (checkIfPoleGame(gNum, state.activeCategory)) {
+                state.scores[i] = state.scores[i].filter(item => item && item.isPole);
+            } else if (checkIfMatchupGame(gNum, state.activeCategory)) {
+                state.scores[i] = state.scores[i].filter(item => item && item.teamA && !item.isPole);
+            } else {
+                state.scores[i] = state.scores[i].filter(item => item && item.name);
+            }
+        }
+    }
+    
+    // Sanitize fakeScores to prevent array serialization issues
+    if (!state.fakeScores || typeof state.fakeScores !== 'object' || Array.isArray(state.fakeScores)) {
+        state.fakeScores = { '#00f0ff': 0, '#ff4b5c': 0, '#ffd600': 0, '#00ff66': 0 };
+    }
 }
 
 // Save to LocalStorage
@@ -400,7 +409,10 @@ function setupRealtimeSync(categoryKey) {
         if (doc.exists) {
             const data = doc.data();
             
-            if (data.scores) state.scores = data.scores;
+            if (data.scores) {
+                state.scores = data.scores;
+                sanitizeScores();
+            }
             if (data.fakeScores) state.fakeScores = data.fakeScores;
             if (data.maesiChecklist) state.maesiChecklist = data.maesiChecklist;
             
@@ -1472,6 +1484,7 @@ function handleFormSubmit() {
         renderLeaderboard();
     } catch (e) {
         console.error("Error submitting form:", e);
+        alert("ตรวจพบข้อผิดพลาด:\n" + e.message + "\n\nStack:\n" + e.stack);
         showToast("เกิดข้อผิดพลาดในการบันทึกคะแนน", "error");
     }
 }
@@ -2230,7 +2243,7 @@ const SUNDAY_BIG_MATCHES = {
             "playerA1": "Gaspard",
             "playerA2": "PV",
             "playerB1": "ลีโอ",
-            "playerB2": "ซออุน"
+            "playerB2": "ซอจุน"
         },
         {
             "id": 4,
@@ -2349,7 +2362,7 @@ const SUNDAY_BIG_MATCHES = {
             "playerYellow": "Harry",
             "playerGreen": "ต่อ",
             "playerBlue": "นนท์",
-            "playerRed": "ซออุน"
+            "playerRed": "ซอจุน"
         },
         {
             "id": 3,
@@ -2484,7 +2497,7 @@ const SUNDAY_BIG_MATCHES = {
             "teamB": "#ff4b5c",
             "playerA1": "Harry",
             "playerA2": "แทนเทน",
-            "playerB1": "ซออุน",
+            "playerB1": "ซอจุน",
             "playerB2": "Smith"
         },
         {
@@ -2598,7 +2611,7 @@ const COLOR_SUGGESTIONS = {
 
         '#00f0ff': ['ไตเติ้ล', 'นนท์', 'คีริน', 'Cooper', 'เฌอโม่', 'มอนเน่', 'เอิร์ท', 'โกฮัง', 'องศา', 'อันยา', 'ดีโน่', 'พบ'],
 
-        '#ff4b5c': ['ลีโอ', 'ซออุน', 'Onewon', 'Smith', 'ทีเค', 'แพงตอง', 'TottiWBB', 'ปอท่อ', 'ภูดิน', 'คามิน', 'ปุ๊บปั๊บ', 'ออนเซน']
+        '#ff4b5c': ['ลีโอ', 'ซอจุน', 'Onewon', 'Smith', 'ทีเค', 'แพงตอง', 'TottiWBB', 'ปอท่อ', 'ภูดิน', 'คามิน', 'ปุ๊บปั๊บ', 'ออนเซน']
     },
 };
 
