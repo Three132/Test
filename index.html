@@ -145,6 +145,12 @@
                 </svg>
                 สรุปผล
             </button>
+            <button class="tab-btn" data-game="maesi" id="tab-game-maesi" style="display: none;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                </svg>
+                เช็คชื่อ (แม่สี)
+            </button>
 
         </nav>
 
@@ -686,16 +692,54 @@
                     </h2>
                     <p class="panel-subtitle" style="font-size: 0.95rem;">ผลคะแนนรวมทุกเกมของแต่ละทีมสี</p>
                 </div>
-                <button type="button" class="btn-submit glow-btn presentation-btn" id="presentation-btn">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.25rem;">
-                        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-                    </svg>
-                    <span>ขยายเต็มจอ Presentation</span>
-                </button>
+                <div class="summary-actions" style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                    <button type="button" class="btn-submit glow-btn presentation-btn" id="presentation-btn" style="margin-top: 0 !important;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.25rem;">
+                            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                        </svg>
+                        <span>ขยายเต็มจอ Presentation</span>
+                    </button>
+                    <button type="button" class="presentation-btn" id="admin-login-btn" style="display: flex; align-items: center; gap: 0.4rem; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); color: var(--text-primary); margin-top: 0 !important; cursor: pointer;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                        <span>ผู้ดูแลระบบ (Admin)</span>
+                    </button>
+                </div>
             </div>
             
             <div class="summary-chart-container" id="summary-chart-container">
                 <!-- Dynamic Javascript Rendering -->
+            </div>
+        </section>
+
+        <!-- Maesi Check List Panel -->
+        <section class="panel" id="maesi-panel" style="display: none; flex-direction: column; gap: 1.5rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; box-shadow: var(--shadow-lg); padding: 2.5rem;">
+            <div class="summary-panel-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 1.25rem;">
+                <div>
+                    <h2 class="panel-title" style="font-size: 1.4rem; display: flex; align-items: center; gap: 0.5rem; color: #fff;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent);">
+                            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                        </svg>
+                        ระบบเช็คสถานะการเล่น (แม่สี) - อาทิตย์ เด็กเล็ก
+                    </h2>
+                    <p class="panel-subtitle" style="font-size: 0.95rem;">ครูสามารถติ๊กเลือกเพื่อติดตามว่าน้องแต่ละคนเล่นเกมใดไปแล้วบ้าง (🎳 Bowling, 🏒 Hockey, 🐟 Fishing, 🤺 Pole Fighting)</p>
+                </div>
+                <!-- Reset Checklist button -->
+                <button type="button" class="presentation-btn" id="maesi-reset-btn" style="display: flex; align-items: center; gap: 0.4rem; background: rgba(255, 75, 92, 0.05); border: 1px solid rgba(255, 75, 92, 0.3); color: var(--color-red); margin-top: 0 !important; cursor: pointer; padding: 0.6rem 1.2rem; border-radius: 10px; font-size: 0.9rem; font-weight: 600;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                        <path d="M16 3h5v5"/>
+                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                        <path d="M8 21H3v-5"/>
+                    </svg>
+                    <span>รีเซ็ตการเช็คชื่อ</span>
+                </button>
+            </div>
+            
+            <div class="maesi-grid" id="maesi-grid-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
+                <!-- Dynamically rendered color group cards -->
             </div>
         </section>
 
@@ -837,6 +881,115 @@ function handleRequest(e) {
             <div class="dialog-buttons" style="margin-top: 0.5rem;">
                 <button type="button" class="btn-cancel" id="sheets-modal-cancel">ยกเลิก</button>
                 <button type="button" class="btn-confirm" id="sheets-save-btn">บันทึกการตั้งค่า</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Authentication Modal Overlay -->
+    <div class="dialog-overlay" id="admin-auth-modal" role="dialog" aria-modal="true" aria-labelledby="admin-auth-title">
+        <div class="dialog-content" style="max-width: 400px;">
+            <div class="dialog-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 0.5rem;">
+                <h3 id="admin-auth-title" style="font-size: 1.25rem; font-weight: 700; text-align: left; display: flex; align-items: center; gap: 0.5rem; color: #fff;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent);">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                    เข้าสู่ระบบผู้ดูแลระบบ
+                </h3>
+                <button type="button" class="icon-btn" id="admin-auth-close" aria-label="ปิด" style="color: var(--text-secondary); font-size: 1.5rem; line-height: 1;">&times;</button>
+            </div>
+            <div style="text-align: left; display: flex; flex-direction: column; gap: 1rem;">
+                <div class="form-group">
+                    <label for="admin-passcode">รหัสผ่านผู้ดูแลระบบ (Admin Passcode)</label>
+                    <div class="input-wrapper">
+                        <input type="password" id="admin-passcode" placeholder="กรอกรหัสผ่าน..." autocomplete="off" style="width: 100%; font-size: 1.1rem; text-align: center; letter-spacing: 4px; border: 1px solid var(--border-color); background: var(--bg-input); color: #fff; padding: 0.60rem; border-radius: 8px;">
+                    </div>
+                    <p id="admin-auth-error" style="color: var(--color-red); font-size: 0.8rem; margin-top: 0.5rem; display: none; text-align: center; font-weight: 600;">รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง</p>
+                </div>
+            </div>
+            <div class="dialog-buttons" style="margin-top: 0.5rem;">
+                <button type="button" class="btn-cancel" id="admin-auth-cancel-btn">ยกเลิก</button>
+                <button type="button" class="btn-confirm" id="admin-auth-submit-btn" style="background: var(--accent); color: #000; box-shadow: 0 4px 10px var(--accent-glow); border: none;">ตกลง</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel Modal Overlay -->
+    <div class="dialog-overlay" id="admin-panel-modal" role="dialog" aria-modal="true" aria-labelledby="admin-panel-title">
+        <div class="dialog-content" style="max-width: 500px; text-align: left;">
+            <div class="dialog-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 0.5rem;">
+                <h3 id="admin-panel-title" style="font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; color: #fff;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent);">
+                        <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+                    </svg>
+                    จัดการคะแนนหลอก (Admin Panel)
+                </h3>
+                <button type="button" class="icon-btn" id="admin-panel-close" aria-label="ปิด" style="color: var(--text-secondary); font-size: 1.5rem; line-height: 1;">&times;</button>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                <!-- Add Fake Score Section -->
+                <div>
+                    <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--accent);">ปรับปรุงคะแนนหลอก</h4>
+                    
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">เลือกสีของทีม</label>
+                        <div class="color-name-selector" style="grid-template-columns: repeat(4, 1fr);" id="admin-color-selector">
+                            <button type="button" class="color-name-btn selected" data-color="blue" data-hex="#00f0ff">
+                                <span class="color-dot-small" style="background:#00f0ff;"></span>
+                                น้ำเงิน
+                            </button>
+                            <button type="button" class="color-name-btn" data-color="red" data-hex="#ff4b5c">
+                                <span class="color-dot-small" style="background:#ff4b5c;"></span>
+                                แดง
+                            </button>
+                            <button type="button" class="color-name-btn" data-color="yellow" data-hex="#ffd600">
+                                <span class="color-dot-small" style="background:#ffd600;"></span>
+                                เหลือง
+                            </button>
+                            <button type="button" class="color-name-btn" data-color="green" data-hex="#00ff66">
+                                <span class="color-dot-small" style="background:#00ff66;"></span>
+                                เขียว
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label for="admin-fake-adjustment" style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">คะแนนที่จะบวกเพิ่ม / ลดลง</label>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <input type="number" id="admin-fake-adjustment" placeholder="เช่น +50 หรือ -30..." style="flex: 1; padding: 0.6rem; font-size: 1rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-input); color: #fff;">
+                            <button type="button" id="admin-save-fake-btn" style="padding: 0.6rem 1.2rem; background: var(--accent); color: #000; font-weight: 700; border-radius: 8px; border: none; cursor: pointer; box-shadow: 0 0 10px var(--accent-glow);">บันทึก</button>
+                        </div>
+                        <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">หมายเหตุ: คะแนนนี้จะนำไปเพิ่ม/ลดที่คะแนนสรุปรวมในหน้าสรุปผล โดยไม่มีผลกระทบต่อคะแนนจริงของผู้เล่น</p>
+                    </div>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 0.25rem 0;">
+
+                <!-- Status Table -->
+                <div>
+                    <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--accent);">ตารางคะแนนจริง VS คะแนนหลอก</h4>
+                    <div style="overflow-x: auto; background: rgba(0,0,0,0.15); border: 1px solid var(--border-color); border-radius: 12px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;" id="admin-scores-table">
+                            <thead>
+                                <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-secondary);">
+                                    <th style="padding: 0.6rem 0.8rem;">ทีมสี</th>
+                                    <th style="padding: 0.6rem 0.8rem; text-align: right;">คะแนนจริง</th>
+                                    <th style="padding: 0.6rem 0.8rem; text-align: right;">คะแนนหลอก (+/-)</th>
+                                    <th style="padding: 0.6rem 0.8rem; text-align: right;">ผลรวมแสดงผล</th>
+                                    <th style="padding: 0.6rem 0.8rem; text-align: center;">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Dynamic rendering -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="dialog-buttons" style="margin-top: 1.25rem;">
+                <button type="button" class="btn-cancel" id="admin-panel-close-btn" style="flex: 1;">ปิดหน้าต่าง</button>
             </div>
         </div>
     </div>

@@ -18,6 +18,13 @@ let state = {
         "3": [],
         "4": []
     },
+    fakeScores: {
+        '#00f0ff': 0, // น้ำเงิน
+        '#ff4b5c': 0, // แดง
+        '#ffd600': 0, // เหลือง
+        '#00ff66': 0  // เขียว
+    },
+    maesiChecklist: {},
     activeGame: "1",
     selectedColor: "#00f0ff",
     selectedColorName: "น้ำเงิน", // Thai color name for Sheet
@@ -140,8 +147,6 @@ function loadData() {
                     const gName = getActiveGameName(gNum);
                     if (gName === 'Fishing') {
                         state.scores[i] = state.scores[i].filter(item => item && item.isFishing);
-                    } else if (checkIfPickPlace4Way(gNum, state.activeCategory)) {
-                        state.scores[i] = state.scores[i].filter(item => item && item.isPP4Way);
                     } else if (checkIfPoleGame(gNum, state.activeCategory)) {
                         state.scores[i] = state.scores[i].filter(item => item && item.isPole);
                     } else if (checkIfMatchupGame(gNum, state.activeCategory)) {
@@ -159,6 +164,32 @@ function loadData() {
         resetScoresObject();
     }
     
+    // Load fake scores (categorized by activeCategory)
+    const fakeKey = `${CONFIG.storageKey}_${state.activeCategory}_fakeScores`;
+    const savedFake = localStorage.getItem(fakeKey);
+    if (savedFake) {
+        try {
+            state.fakeScores = JSON.parse(savedFake);
+        } catch (e) {
+            state.fakeScores = { '#00f0ff': 0, '#ff4b5c': 0, '#ffd600': 0, '#00ff66': 0 };
+        }
+    } else {
+        state.fakeScores = { '#00f0ff': 0, '#ff4b5c': 0, '#ffd600': 0, '#00ff66': 0 };
+    }
+
+    // Load Maesi checklist (categorized by activeCategory)
+    const maesiKey = `${CONFIG.storageKey}_${state.activeCategory}_maesi`;
+    const savedMaesi = localStorage.getItem(maesiKey);
+    if (savedMaesi) {
+        try {
+            state.maesiChecklist = JSON.parse(savedMaesi);
+        } catch (e) {
+            state.maesiChecklist = {};
+        }
+    } else {
+        state.maesiChecklist = {};
+    }
+    
     // Load Sheets integration URL (global)
     state.sheetsUrl = localStorage.getItem('scoreboard_sheets_url') || "";
 }
@@ -172,6 +203,12 @@ function saveData() {
     if (!state.activeCategory) return;
     const key = `${CONFIG.storageKey}_${state.activeCategory}`;
     localStorage.setItem(key, JSON.stringify(state.scores));
+    
+    const fakeKey = `${CONFIG.storageKey}_${state.activeCategory}_fakeScores`;
+    localStorage.setItem(fakeKey, JSON.stringify(state.fakeScores));
+    
+    const maesiKey = `${CONFIG.storageKey}_${state.activeCategory}_maesi`;
+    localStorage.setItem(maesiKey, JSON.stringify(state.maesiChecklist || {}));
 }
 
 // Update Google Sheets Status in header
@@ -446,23 +483,6 @@ function setupEventListeners() {
         });
     }
 
-    // Pick and Place 4-Way Win/Loss Toggles
-    const colors_list = ['yellow', 'green', 'blue', 'red'];
-    colors_list.forEach(col => {
-        const winBtn = document.getElementById(`pp4-win-${col}`);
-        const lossBtn = document.getElementById(`pp4-loss-${col}`);
-        if (winBtn && lossBtn) {
-            winBtn.addEventListener('click', () => {
-                winBtn.classList.add('active');
-                lossBtn.classList.remove('active');
-            });
-            lossBtn.addEventListener('click', () => {
-                lossBtn.classList.add('active');
-                winBtn.classList.remove('active');
-            });
-        }
-    });
-
     // Pole Fighting Form Listeners
     document.querySelectorAll('#pole-team-a-selector .color-name-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -490,6 +510,151 @@ function setupEventListeners() {
     const poleWinBBtn = document.getElementById('pole-winner-b-btn');
     if (poleWinABtn) poleWinABtn.addEventListener('click', () => { state.pole.winner = 'A'; updatePoleFormUI(); });
     if (poleWinBBtn) poleWinBBtn.addEventListener('click', () => { state.pole.winner = 'B'; updatePoleFormUI(); });
+
+    // Admin Login and Panel Listeners
+    const adminLoginBtn = document.getElementById('admin-login-btn');
+    const adminAuthModal = document.getElementById('admin-auth-modal');
+    const adminAuthClose = document.getElementById('admin-auth-close');
+    const adminAuthCancelBtn = document.getElementById('admin-auth-cancel-btn');
+    const adminAuthSubmitBtn = document.getElementById('admin-auth-submit-btn');
+    const adminPasscodeInput = document.getElementById('admin-passcode');
+    const adminAuthError = document.getElementById('admin-auth-error');
+
+    const adminPanelModal = document.getElementById('admin-panel-modal');
+    const adminPanelClose = document.getElementById('admin-panel-close');
+    const adminPanelCloseBtn = document.getElementById('admin-panel-close-btn');
+    const adminFakeAdjustment = document.getElementById('admin-fake-adjustment');
+    const adminSaveFakeBtn = document.getElementById('admin-save-fake-btn');
+
+    let selectedAdminColor = '#00f0ff';
+
+    if (adminLoginBtn) {
+        adminLoginBtn.addEventListener('click', () => {
+            if (adminPasscodeInput) adminPasscodeInput.value = '';
+            if (adminAuthError) adminAuthError.style.display = 'none';
+            if (adminAuthModal) adminAuthModal.classList.add('open');
+            if (adminPasscodeInput) adminPasscodeInput.focus();
+        });
+    }
+
+    const closeAdminAuth = () => {
+        if (adminAuthModal) adminAuthModal.classList.remove('open');
+    };
+    if (adminAuthClose) adminAuthClose.addEventListener('click', closeAdminAuth);
+    if (adminAuthCancelBtn) adminAuthCancelBtn.addEventListener('click', closeAdminAuth);
+
+    const submitAdminAuth = () => {
+        if (!adminPasscodeInput) return;
+        if (adminPasscodeInput.value === '1234') {
+            closeAdminAuth();
+            
+            // Set default color selection to first available
+            selectedAdminColor = '#00f0ff';
+            document.querySelectorAll('#admin-color-selector .color-name-btn').forEach(btn => {
+                const hex = btn.getAttribute('data-hex');
+                btn.classList.toggle('selected', hex === selectedAdminColor);
+            });
+            if (adminFakeAdjustment) adminFakeAdjustment.value = '';
+
+            // Hide green/yellow on Saturday
+            const isSat = state.activeCategory === 'saturday';
+            document.querySelectorAll('#admin-color-selector .color-name-btn').forEach(btn => {
+                const hex = btn.getAttribute('data-hex');
+                if (isSat && (hex === '#ffd600' || hex === '#00ff66')) {
+                    btn.style.display = 'none';
+                } else {
+                    btn.style.display = 'flex';
+                }
+            });
+
+            renderAdminScoresTable();
+            if (adminPanelModal) adminPanelModal.classList.add('open');
+        } else {
+            if (adminAuthError) adminAuthError.style.display = 'block';
+        }
+    };
+
+    if (adminAuthSubmitBtn) adminAuthSubmitBtn.addEventListener('click', submitAdminAuth);
+    if (adminPasscodeInput) {
+        adminPasscodeInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') submitAdminAuth();
+        });
+    }
+
+    const closeAdminPanel = () => {
+        if (adminPanelModal) adminPanelModal.classList.remove('open');
+    };
+    if (adminPanelClose) adminPanelClose.addEventListener('click', closeAdminPanel);
+    if (adminPanelCloseBtn) adminPanelCloseBtn.addEventListener('click', closeAdminPanel);
+
+    // Color buttons inside Admin Panel
+    document.querySelectorAll('#admin-color-selector .color-name-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('#admin-color-selector .color-name-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            selectedAdminColor = btn.getAttribute('data-hex');
+        });
+    });
+
+    if (adminSaveFakeBtn) {
+        adminSaveFakeBtn.addEventListener('click', () => {
+            if (!adminFakeAdjustment) return;
+            const val = parseInt(adminFakeAdjustment.value) || 0;
+            if (val === 0) {
+                showToast("กรุณาระบุคะแนนที่ไม่ใช่ 0", "error");
+                return;
+            }
+            
+            if (!state.fakeScores) {
+                state.fakeScores = { '#00f0ff': 0, '#ff4b5c': 0, '#ffd600': 0, '#00ff66': 0 };
+            }
+            
+            // Add/Adjust fake score
+            state.fakeScores[selectedAdminColor] = (state.fakeScores[selectedAdminColor] || 0) + val;
+            saveData();
+            
+            adminFakeAdjustment.value = '';
+            renderAdminScoresTable();
+            renderSummaryChart();
+            
+            const colorName = HEX_TO_NAME[selectedAdminColor] || selectedAdminColor;
+            showToast(`ปรับคะแนนหลอกทีมสี${colorName}สำเร็จ (${val > 0 ? '+' : ''}${val})`, "success");
+        });
+    }
+
+    // Maesi Checklist Reset Listener
+    const maesiResetBtn = document.getElementById('maesi-reset-btn');
+    if (maesiResetBtn) {
+        maesiResetBtn.addEventListener('click', () => {
+            if (confirm('คุณแน่ใจหรือไม่ว่าต้องการรีเซ็ตการเช็คชื่อทั้งหมดของแม่สี?')) {
+                state.maesiChecklist = {};
+                saveData();
+                renderMaesiPanel();
+                showToast("รีเซ็ตการเช็คชื่อทั้งหมดแล้ว", "success");
+            }
+        });
+    }
+
+    // Checkbox Change delegation for Maesi Grid
+    const maesiGrid = document.getElementById('maesi-grid-container');
+    if (maesiGrid) {
+        maesiGrid.addEventListener('change', (e) => {
+            if (e.target.tagName === 'INPUT' && e.target.type === 'checkbox') {
+                const player = e.target.getAttribute('data-player');
+                const game = e.target.getAttribute('data-game');
+                const isChecked = e.target.checked;
+                
+                if (!state.maesiChecklist) {
+                    state.maesiChecklist = {};
+                }
+                if (!state.maesiChecklist[player]) {
+                    state.maesiChecklist[player] = {};
+                }
+                state.maesiChecklist[player][game] = isChecked;
+                saveData();
+            }
+        });
+    }
 }
 
 // Set Active Game & Update UI Themes
@@ -513,12 +678,23 @@ function setActiveGame(gameNum) {
         // Toggle view containers
         DOM.mainDashboard.style.display = 'none';
         DOM.summaryPanel.style.display = 'flex';
+        const maesiPanel = document.getElementById('maesi-panel');
+        if (maesiPanel) maesiPanel.style.display = 'none';
         
         // Render standings chart
         renderSummaryChart();
+    } else if (gameNum === "maesi") {
+        // Toggle view containers
+        DOM.mainDashboard.style.display = 'none';
+        DOM.summaryPanel.style.display = 'none';
+        const maesiPanel = document.getElementById('maesi-panel');
+        if (maesiPanel) maesiPanel.style.display = 'flex';
+        renderMaesiPanel();
     } else {
         // Toggle view containers
         DOM.summaryPanel.style.display = 'none';
+        const maesiPanel = document.getElementById('maesi-panel');
+        if (maesiPanel) maesiPanel.style.display = 'none';
         DOM.mainDashboard.style.display = 'grid';
 
         // Toggle standard/objects hit/matchup/pole form fields
@@ -526,12 +702,10 @@ function setActiveGame(gameNum) {
         const isMatchupGame = checkIfMatchupGame(gameNum, state.activeCategory);
         const isPoleGame = checkIfPoleGame(gameNum, state.activeCategory);
         
-        const isPP4Way = checkIfPickPlace4Way(gameNum, state.activeCategory);
         if (isPoleGame) {
             document.getElementById('standard-form-fields').style.display = 'none';
             document.getElementById('match-form-fields').style.display = 'none';
             document.getElementById('fishing-form-fields').style.display = 'none';
-            document.getElementById('pp4-form-fields').style.display = 'none';
             document.getElementById('pole-form-fields').style.display = 'block';
             DOM.playerNameInput.removeAttribute('required');
             DOM.formPanelSubtitle.textContent = `บันทึกผลการแข่ง ${getActiveGameName(gameNum)} (2 ทีม × 2 คน)`;
@@ -541,22 +715,11 @@ function setActiveGame(gameNum) {
             document.getElementById('standard-form-fields').style.display = 'none';
             document.getElementById('match-form-fields').style.display = 'none';
             document.getElementById('fishing-form-fields').style.display = 'block';
-            document.getElementById('pp4-form-fields').style.display = 'none';
             document.getElementById('pole-form-fields').style.display = 'none';
             DOM.playerNameInput.removeAttribute('required');
             DOM.formPanelSubtitle.textContent = `ระบุจำนวนปลาที่แต่ละสีตกได้ใน ${getActiveGameName(gameNum)}`;
             DOM.submitBtn.querySelector('span').textContent = state.editId !== null ? 'บันทึกการแก้ไข' : 'บันทึกคะแนนรอบนี้';
             updateFishingPlayerDropdowns();
-        } else if (isPP4Way) {
-            document.getElementById('standard-form-fields').style.display = 'none';
-            document.getElementById('match-form-fields').style.display = 'none';
-            document.getElementById('fishing-form-fields').style.display = 'none';
-            document.getElementById('pp4-form-fields').style.display = 'block';
-            document.getElementById('pole-form-fields').style.display = 'none';
-            DOM.playerNameInput.removeAttribute('required');
-            DOM.formPanelSubtitle.textContent = `ระบุน้ำหนักและผลการแข่งใน ${getActiveGameName(gameNum)} (แข่งทีละ 4 คน)`;
-            DOM.submitBtn.querySelector('span').textContent = state.editId !== null ? 'บันทึกการแก้ไข' : 'บันทึกคะแนนรอบนี้';
-            updatePP4PlayerDropdowns();
         } else if (isMatchupGame) {
             document.getElementById('standard-form-fields').style.display = 'none';
             document.getElementById('match-form-fields').style.display = 'block';
@@ -703,8 +866,8 @@ const HEX_TO_NAME = {
 function checkIfMatchupGame(gameNum, category) {
     const gameName = getActiveGameName(gameNum);
     if (gameName === 'Sumo') return true;
-    // Pick and Place เป็นแมตช์ 1 ต่อ 1 (ใส่น้ำหนัก) ยกเว้นเด็กโตวันอาทิตย์ และวันเสาร์ (เป็น 2v2)
-    if (gameName === 'Pick and Place' && category !== 'sunday_big' && category !== 'saturday') return true;
+    // Pick and Place เป็นแมตช์ 1 ต่อ 1 (ใส่น้ำหนัก) ยกเว้นเด็กโตวันอาทิตย์ (เป็น 2v2)
+    if (gameName === 'Pick and Place' && category !== 'sunday_big') return true;
     // Hockey เป็นแมตช์ 1 ต่อ 1 (ใส่แต้ม) เฉพาะวันเสาร์
     if (gameName === 'Hockey' && category === 'saturday') return true;
     return false;
@@ -712,10 +875,6 @@ function checkIfMatchupGame(gameNum, category) {
 
 function checkIfFishingGame(gameNum, category) {
     return gameNum === "3" && (category === 'sunday_small' || category === 'sunday_big');
-}
-
-function checkIfPickPlace4Way(gameNum, category) {
-    return false;
 }
 
 function selectColorByHex(hex) {
@@ -818,69 +977,6 @@ function handleFormSubmit() {
                 };
                 state.scores[state.activeGame].push(newMatch);
                 syncMatchToGoogleSheet(newMatch);
-            }
-            
-            saveData();
-            exitEditMode();
-            renderStats();
-            renderLeaderboard();
-            return;
-        }
-
-        const isPP4Way = checkIfPickPlace4Way(state.activeGame, state.activeCategory);
-        if (isPP4Way) {
-            const nameYellow = document.getElementById('pp4-player-yellow')?.value || '';
-            const nameGreen = document.getElementById('pp4-player-green')?.value || '';
-            const nameBlue = document.getElementById('pp4-player-blue')?.value || '';
-            const nameRed = document.getElementById('pp4-player-red')?.value || '';
-            
-            const weightYellow = parseFloat(document.getElementById('pp4-weight-yellow')?.value) || 0;
-            const weightGreen = parseFloat(document.getElementById('pp4-weight-green')?.value) || 0;
-            const weightBlue = parseFloat(document.getElementById('pp4-weight-blue')?.value) || 0;
-            const weightRed = parseFloat(document.getElementById('pp4-weight-red')?.value) || 0;
-            
-            const isWinYellow = document.getElementById('pp4-win-yellow')?.classList.contains('active');
-            const isWinGreen = document.getElementById('pp4-win-green')?.classList.contains('active');
-            const isWinBlue = document.getElementById('pp4-win-blue')?.classList.contains('active');
-            const isWinRed = document.getElementById('pp4-win-red')?.classList.contains('active');
-            
-            const scoreYellow = isWinYellow ? 30 : 10;
-            const scoreGreen = isWinGreen ? 30 : 10;
-            const scoreBlue = isWinBlue ? 30 : 10;
-            const scoreRed = isWinRed ? 30 : 10;
-            
-            const resultYellow = isWinYellow ? 'win' : 'loss';
-            const resultGreen = isWinGreen ? 'win' : 'loss';
-            const resultBlue = isWinBlue ? 'win' : 'loss';
-            const resultRed = isWinRed ? 'win' : 'loss';
-            
-            if (state.editId !== null) {
-                const index = state.scores[state.activeGame].findIndex(r => r.id === state.editId);
-                if (index !== -1) {
-                    Object.assign(state.scores[state.activeGame][index], {
-                        nameYellow, nameGreen, nameBlue, nameRed,
-                        weightYellow, weightGreen, weightBlue, weightRed,
-                        resultYellow, resultGreen, resultBlue, resultRed,
-                        scoreYellow, scoreGreen, scoreBlue, scoreRed
-                    });
-                    if (state.activeMatchId) {
-                        state.scores[state.activeGame][index].matchId = state.activeMatchId;
-                    }
-                    syncPickPlace4WayToGoogleSheet(state.scores[state.activeGame][index]);
-                }
-            } else {
-                const newRound = {
-                    id: Date.now().toString(),
-                    isPP4Way: true,
-                    nameYellow, nameGreen, nameBlue, nameRed,
-                    weightYellow, weightGreen, weightBlue, weightRed,
-                    resultYellow, resultGreen, resultBlue, resultRed,
-                    scoreYellow, scoreGreen, scoreBlue, scoreRed,
-                    timestamp: Date.now(),
-                    matchId: state.activeMatchId || null
-                };
-                state.scores[state.activeGame].push(newRound);
-                syncPickPlace4WayToGoogleSheet(newRound);
             }
             
             saveData();
@@ -1226,35 +1322,6 @@ function exitEditMode() {
         py.value = '';
         pr.value = '';
     }
-
-    // Reset pp4 inputs
-    const pp4_py = document.getElementById('pp4-player-yellow');
-    const pp4_pg = document.getElementById('pp4-player-green');
-    const pp4_pb = document.getElementById('pp4-player-blue');
-    const pp4_pr = document.getElementById('pp4-player-red');
-    if (pp4_py) pp4_py.value = '';
-    if (pp4_pg) pp4_pg.value = '';
-    if (pp4_pb) pp4_pb.value = '';
-    if (pp4_pr) pp4_pr.value = '';
-    
-    const pp4_wy = document.getElementById('pp4-weight-yellow');
-    const pp4_wg = document.getElementById('pp4-weight-green');
-    const pp4_wb = document.getElementById('pp4-weight-blue');
-    const pp4_wr = document.getElementById('pp4-weight-red');
-    if (pp4_wy) pp4_wy.value = '0';
-    if (pp4_wg) pp4_wg.value = '0';
-    if (pp4_wb) pp4_wb.value = '0';
-    if (pp4_wr) pp4_wr.value = '0';
-    
-    const colors_list = ['yellow', 'green', 'blue', 'red'];
-    colors_list.forEach(col => {
-        const winBtn = document.getElementById(`pp4-win-${col}`);
-        const lossBtn = document.getElementById(`pp4-loss-${col}`);
-        if (winBtn && lossBtn) {
-            winBtn.classList.add('active');
-            lossBtn.classList.remove('active');
-        }
-    });
     
     const isMatchupGame = checkIfMatchupGame(state.activeGame, state.activeCategory);
     const isPoleGameNow = state.activeCategory ? checkIfPoleGame(state.activeGame, state.activeCategory) : false;
@@ -1296,92 +1363,6 @@ function updateFishingPlayerDropdowns() {
             opt.textContent = name;
             select.appendChild(opt);
         });
-    });
-}
-
-function updatePP4PlayerDropdowns() {
-    const colors = [
-        { id: 'yellow', hex: '#ffd600' },
-        { id: 'red',    hex: '#ff4b5c' },
-        { id: 'blue',   hex: '#00f0ff' },
-        { id: 'green',  hex: '#00ff66' }
-    ];
-    
-    const cat = state.activeCategory || 'saturday';
-    
-    colors.forEach(color => {
-        const select = document.getElementById(`pp4-player-${color.id}`);
-        if (!select) return;
-        
-        const list = (COLOR_SUGGESTIONS[cat] && COLOR_SUGGESTIONS[cat][color.hex]) || [];
-        select.innerHTML = '<option value="" disabled selected>-- เลือกชื่อน้อง --</option>';
-        list.forEach(name => {
-            const opt = document.createElement('option');
-            opt.value = name;
-            opt.textContent = name;
-            select.appendChild(opt);
-        });
-    });
-}
-
-function enterPP4EditMode(round) {
-    state.editId = round.id;
-    state.activeMatchId = round.matchId || null;
-    updatePP4PlayerDropdowns();
-    
-    const py = document.getElementById('pp4-player-yellow');
-    const pg = document.getElementById('pp4-player-green');
-    const pb = document.getElementById('pp4-player-blue');
-    const pr = document.getElementById('pp4-player-red');
-    if (py) py.value = round.nameYellow || '';
-    if (pg) pg.value = round.nameGreen || '';
-    if (pb) pb.value = round.nameBlue || '';
-    if (pr) pr.value = round.nameRed || '';
-    
-    const wy = document.getElementById('pp4-weight-yellow');
-    const wg = document.getElementById('pp4-weight-green');
-    const wb = document.getElementById('pp4-weight-blue');
-    const wr = document.getElementById('pp4-weight-red');
-    if (wy) wy.value = round.weightYellow || 0;
-    if (wg) wg.value = round.weightGreen || 0;
-    if (wb) wb.value = round.weightBlue || 0;
-    if (wr) wr.value = round.weightRed || 0;
-    
-    const colors = ['yellow', 'green', 'blue', 'red'];
-    colors.forEach(col => {
-        const result = round[`result${col.charAt(0).toUpperCase() + col.slice(1)}`] || 'win';
-        const winBtn = document.getElementById(`pp4-win-${col}`);
-        const lossBtn = document.getElementById(`pp4-loss-${col}`);
-        if (winBtn && lossBtn) {
-            if (result === 'win') {
-                winBtn.classList.add('active');
-                lossBtn.classList.remove('active');
-            } else {
-                lossBtn.classList.add('active');
-                winBtn.classList.remove('active');
-            }
-        }
-    });
-    
-    DOM.submitBtn.classList.add('btn-edit-mode');
-    DOM.submitBtn.querySelector('span').textContent = 'บันทึกการแก้ไข';
-    DOM.cancelEditBtn.style.display = 'block';
-}
-
-function syncPickPlace4WayToGoogleSheet(record) {
-    if (!state.sheetsUrl) return;
-    const colors = [
-        { name: 'เหลือง', player: record.nameYellow, score: record.scoreYellow, weight: record.weightYellow, result: record.resultYellow },
-        { name: 'เขียว', player: record.nameGreen, score: record.scoreGreen, weight: record.weightGreen, result: record.resultGreen },
-        { name: 'น้ำเงิน', player: record.nameBlue, score: record.scoreBlue, weight: record.weightBlue, result: record.resultBlue },
-        { name: 'แดง', player: record.nameRed, score: record.scoreRed, weight: record.weightRed, result: record.resultRed }
-    ];
-    colors.forEach((c, idx) => {
-        setTimeout(() => {
-            const resultText = c.result === 'win' ? 'ชนะ' : 'แพ้';
-            const displayName = `น้อง${c.player} [${resultText}] [น้ำหนัก: ${c.weight} กก.]`;
-            syncToGoogleSheet(state.activeGame, displayName, c.score, c.name);
-        }, idx * 1200);
     });
 }
 
@@ -1460,9 +1441,13 @@ function updateMatchFormUI() {
             winABtn.style.background = '';
         }
     }
-    // Refresh รายชื่อตามสีที่เลือก
-    updateMatchPlayerDropdown('A');
-    updateMatchPlayerDropdown('B');
+    // Refresh รายชื่อตามสีที่เลือก (และคงค่าที่เลือกไว้เดิม)
+    const selA = document.getElementById('match-player-a');
+    const selB = document.getElementById('match-player-b');
+    const valA = selA ? selA.value : null;
+    const valB = selB ? selB.value : null;
+    updateMatchPlayerDropdown('A', valA);
+    updateMatchPlayerDropdown('B', valB);
 
 }
 
@@ -1490,24 +1475,13 @@ function updateMatchPlayerDropdown(team, selectedValue = null) {
 // Check if current game is Pole Fighting (2v2) — รวม Hockey วันอาทิตย์ด้วย
 function checkIfPoleGame(gameNum, category) {
     const gameName = getActiveGameName(gameNum);
-
     if (gameName === 'Pole Fighting') return true;
-
-    if (gameName === 'Bowling' &&
-        category === 'sunday_small')
-        return true;
-
-    if (gameName === 'Hockey' &&
-       (category === 'sunday_small' || category === 'sunday_big'))
-       return true;
-
-    if (gameName === 'Pick and Place' &&
-       (category === 'sunday_big' || category === 'saturday'))
-       return true;
-
+    // Hockey วันอาทิตย์ = 2 ทีม × 2 คน (ใช้ฟอร์มแบบ Pole Fighting)
+    if (gameName === 'Hockey' && (category === 'sunday_small' || category === 'sunday_big')) return true;
+    // Pick and Place เด็กโตวันอาทิตย์ = 2 ทีม × 2 คน (ใช้ฟอร์มแบบ Pole Fighting)
+    if (gameName === 'Pick and Place' && category === 'sunday_big') return true;
     return false;
 }
-
 
 // Update pole form UI state (color selectors + winner buttons + player dropdowns)
 function updatePoleFormUI() {
@@ -1528,7 +1502,6 @@ function updatePoleFormUI() {
     
     const winABtn = document.getElementById('pole-winner-a-btn');
     const winBBtn = document.getElementById('pole-winner-b-btn');
-    
     if (winABtn && winBBtn) {
         winABtn.textContent = `ทีมสี${HEX_TO_NAME[state.pole.teamA]} ชนะ`;
         winBBtn.textContent = `ทีมสี${HEX_TO_NAME[state.pole.teamB]} ชนะ`;
@@ -1545,9 +1518,8 @@ function updatePoleFormUI() {
         winBBtn.style.background = !isWinA ? `${state.pole.teamB}15` : '';
     }
 
-    // Toggle 1v1 vs 2v2: Pole Fighting วันเสาร์ = 1v1, ที่เหลือ (วันอาทิตย์ + Hockey อาทิตย์ + Pick and Place เสาร์) = 2v2
-    const gameName = getActiveGameName(state.activeGame);
-    const isPole1v1 = state.activeCategory === 'saturday' && gameName === 'Pole Fighting';
+    // Toggle 1v1 vs 2v2: Pole Fighting วันเสาร์ = 1v1, ที่เหลือ (วันอาทิตย์ + Hockey อาทิตย์) = 2v2
+    const isSat = state.activeCategory === 'saturday';
     const wrapperA2 = document.getElementById('pole-player-a2-wrapper');
     const wrapperB2 = document.getElementById('pole-player-b2-wrapper');
     const gridA = document.getElementById('pole-team-a-players-grid');
@@ -1555,7 +1527,7 @@ function updatePoleFormUI() {
     const labelA1 = document.getElementById('pole-label-a1');
     const labelB1 = document.getElementById('pole-label-b1');
     
-    if (isPole1v1) {
+    if (isSat) {
         if (wrapperA2) wrapperA2.style.display = 'none';
         if (wrapperB2) wrapperB2.style.display = 'none';
         if (gridA) gridA.style.gridTemplateColumns = '1fr';
@@ -1571,8 +1543,17 @@ function updatePoleFormUI() {
         if (labelB1) labelB1.textContent = `ผู้เล่น 1 (ทีมสี${teamBColorName})`;
     }
 
-    updatePolePlayerDropdown('A');
-    updatePolePlayerDropdown('B');
+    // Refresh รายชื่อตามสีที่เลือก (และคงค่าที่เลือกไว้เดิม)
+    const selA1 = document.getElementById('pole-player-a1');
+    const selA2 = document.getElementById('pole-player-a2');
+    const selB1 = document.getElementById('pole-player-b1');
+    const selB2 = document.getElementById('pole-player-b2');
+    const valA1 = selA1 ? selA1.value : null;
+    const valA2 = selA2 ? selA2.value : null;
+    const valB1 = selB1 ? selB1.value : null;
+    const valB2 = selB2 ? selB2.value : null;
+    updatePolePlayerDropdown('A', [valA1, valA2]);
+    updatePolePlayerDropdown('B', [valB1, valB2]);
 }
 
 // Update player dropdowns for Pole Fighting team
@@ -1661,759 +1642,81 @@ function syncFishingToGoogleSheet(round) {
 
 // Pre-configured matches for Sunday Small (วันอาทิตย์ เด็กเล็ก)
 const SUNDAY_SMALL_MATCHES = {
+    // Game 1 — Bowling (1v1 สีปะทะสี / นับวัตถุที่โดนเทียบกัน)  — รอบสุดท้าย (round 14) = รอบเก็บตก จับเพื่อนรุ่นเดียวกันมาช่วยให้ครบ
     "1": [
-        {
-            "id": 1,
-            "round": 1,
-            "type": "individual",
-            "player": "ก้าว",
-            "color": "#ffd600"
-        },
-        {
-            "id": 2,
-            "round": 1,
-            "type": "individual",
-            "player": "เซนต์",
-            "color": "#ffd600"
-        },
-        {
-            "id": 3,
-            "round": 1,
-            "type": "individual",
-            "player": "ดีเซล",
-            "color": "#ffd600"
-        },
-        {
-            "id": 4,
-            "round": 1,
-            "type": "individual",
-            "player": "ใบบุญ",
-            "color": "#ffd600"
-        },
-        {
-            "id": 5,
-            "round": 2,
-            "type": "individual",
-            "player": "จินดา",
-            "color": "#ffd600"
-        },
-        {
-            "id": 6,
-            "round": 2,
-            "type": "individual",
-            "player": "Cani",
-            "color": "#ffd600"
-        },
-        {
-            "id": 7,
-            "round": 2,
-            "type": "individual",
-            "player": "ภาคิน",
-            "color": "#ffd600"
-        },
-        {
-            "id": 8,
-            "round": 2,
-            "type": "individual",
-            "player": "ไบรท์",
-            "color": "#ffd600"
-        },
-        {
-            "id": 9,
-            "round": 3,
-            "type": "individual",
-            "player": "เลโก้",
-            "color": "#00ff66"
-        },
-        {
-            "id": 10,
-            "round": 3,
-            "type": "individual",
-            "player": "อาเหยียน",
-            "color": "#00ff66"
-        },
-        {
-            "id": 11,
-            "round": 3,
-            "type": "individual",
-            "player": "เชฟ",
-            "color": "#00ff66"
-        },
-        {
-            "id": 12,
-            "round": 3,
-            "type": "individual",
-            "player": "ขอบคุณ",
-            "color": "#00ff66"
-        },
-        {
-            "id": 13,
-            "round": 4,
-            "type": "individual",
-            "player": "ฟรานส์",
-            "color": "#00ff66"
-        },
-        {
-            "id": 14,
-            "round": 4,
-            "type": "individual",
-            "player": "มีตังค์",
-            "color": "#00ff66"
-        },
-        {
-            "id": 15,
-            "round": 4,
-            "type": "individual",
-            "player": "เชอริล",
-            "color": "#00f0ff"
-        },
-        {
-            "id": 16,
-            "round": 4,
-            "type": "individual",
-            "player": "เท็นเท็น",
-            "color": "#00f0ff"
-        },
-        {
-            "id": 17,
-            "round": 5,
-            "type": "individual",
-            "player": "นาคิน",
-            "color": "#ff4b5c"
-        },
-        {
-            "id": 18,
-            "round": 5,
-            "type": "individual",
-            "player": "ปุณณ์ W",
-            "color": "#00ff66"
-        },
-        {
-            "id": 19,
-            "round": 5,
-            "type": "individual",
-            "player": "นาคินทร์",
-            "color": "#00ff66"
-        },
-        {
-            "id": 20,
-            "round": 5,
-            "type": "individual",
-            "player": "ไทเป",
-            "color": "#00f0ff"
-        },
-        {
-            "id": 21,
-            "round": 6,
-            "type": "individual",
-            "player": "ภูผา",
-            "color": "#ff4b5c"
-        },
-        {
-            "id": 22,
-            "round": 6,
-            "type": "individual",
-            "player": "กราฟิก",
-            "color": "#00f0ff"
-        },
-        {
-            "id": 23,
-            "round": 6,
-            "type": "individual",
-            "player": "พายุ",
-            "color": "#ff4b5c"
-        },
-        {
-            "id": 24,
-            "round": 6,
-            "type": "individual",
-            "player": "อาร์ชี่",
-            "color": "#ff4b5c"
-        },
-        {
-            "id": 25,
-            "round": 7,
-            "type": "individual",
-            "player": "ลอฟต์",
-            "color": "#ff4b5c"
-        },
-        {
-            "id": 26,
-            "round": 7,
-            "type": "individual",
-            "player": "อคิณ",
-            "color": "#ff4b5c"
-        },
-        {
-            "id": 27,
-            "round": 7,
-            "type": "individual",
-            "player": "อิงอิง",
-            "color": "#ffd600"
-        },
-        {
-            "id": 28,
-            "round": 7,
-            "type": "individual",
-            "player": "ฟลินน์",
-            "color": "#00ff66"
-        },
-        {
-            "id": 29,
-            "round": 8,
-            "type": "individual",
-            "player": "ณคุณ",
-            "color": "#00f0ff"
-        },
-        {
-            "id": 30,
-            "round": 8,
-            "type": "individual",
-            "player": "ตะวัน",
-            "color": "#ff4b5c"
-        },
-        {
-            "id": 31,
-            "round": 8,
-            "type": "individual",
-            "player": "คิน",
-            "color": "#ffd600"
-        },
-        {
-            "id": 32,
-            "round": 8,
-            "type": "individual",
-            "player": "ปุงปัง",
-            "color": "#00ff66"
-        },
-        {
-            "id": 33,
-            "round": 9,
-            "type": "individual",
-            "player": "Glad",
-            "color": "#00ff66"
-        },
-        {
-            "id": 34,
-            "round": 9,
-            "type": "individual",
-            "player": "ท้องฟ้า",
-            "color": "#ff4b5c"
-        },
-        {
-            "id": 35,
-            "round": 9,
-            "type": "individual",
-            "player": "พรีมพรีม",
-            "color": "#ffd600"
-        },
-        {
-            "id": 36,
-            "round": 9,
-            "type": "individual",
-            "player": "ลูกแก้ว",
-            "color": "#ffd600"
-        },
-        {
-            "id": 37,
-            "round": 10,
-            "type": "individual",
-            "player": "อุ่นใจ",
-            "color": "#00f0ff"
-        },
-        {
-            "id": 38,
-            "round": 10,
-            "type": "individual",
-            "player": "เอ็ดก้า",
-            "color": "#00f0ff"
-        },
-        {
-            "id": 39,
-            "round": 10,
-            "type": "individual",
-            "player": "ปุณณ์",
-            "color": "#ff4b5c"
-        },
-        {
-            "id": 40,
-            "round": 10,
-            "type": "individual",
-            "player": "ภัฅ",
-            "color": "#00ff66"
-        },
-        {
-            "id": 41,
-            "round": 11,
-            "type": "individual",
-            "player": "ภูเขา",
-            "color": "#00f0ff"
-        },
-        {
-            "id": 42,
-            "round": 11,
-            "type": "individual",
-            "player": "โปรดปราน",
-            "color": "#00f0ff"
-        },
-        {
-            "id": 43,
-            "round": 11,
-            "type": "individual",
-            "player": "อะตอมW",
-            "color": "#00f0ff"
-        },
-        {
-            "id": 44,
-            "round": 12,
-            "type": "individual",
-            "player": "TinTin",
-            "color": "#ff4b5c"
-        },
-        {
-            "id": 45,
-            "round": 12,
-            "type": "individual",
-            "player": "ฟีนิกซ์",
-            "color": "#ff4b5c"
-        },
-        {
-            "id": 46,
-            "round": 12,
-            "type": "individual",
-            "player": "แมนต้า",
-            "color": "#ff4b5c"
-        },
-        {
-            "id": 47,
-            "round": 13,
-            "type": "individual",
-            "player": "ปราบ",
-            "color": "#00f0ff"
-        },
-        {
-            "id": 48,
-            "round": 13,
-            "type": "individual",
-            "player": "ยูตะ",
-            "color": "#ff4b5c"
-        },
-        {
-            "id": 49,
-            "round": 13,
-            "type": "individual",
-            "player": "อินเวสต์",
-            "color": "#00f0ff"
-        }
+        { "id": 1, "round": 1, "type": "individual", "teamA": "#ffd600", "playerA": "จินดา", "teamB": "#00ff66", "playerB": "ปุงปัง" },
+        { "id": 2, "round": 1, "type": "individual", "teamA": "#ffd600", "playerA": "เซนต์", "teamB": "#00ff66", "playerB": "เชฟ" },
+        { "id": 3, "round": 2, "type": "individual", "teamA": "#00f0ff", "playerA": "กราฟิก", "teamB": "#ff4b5c", "playerB": "ภูผา" },
+        { "id": 4, "round": 2, "type": "individual", "teamA": "#00f0ff", "playerA": "ณคุณ", "teamB": "#ff4b5c", "playerB": "ลอฟต์" },
+        { "id": 5, "round": 3, "type": "individual", "teamA": "#ffd600", "playerA": "คิน", "teamB": "#00ff66", "playerB": "นาคินทร์" },
+        { "id": 6, "round": 3, "type": "individual", "teamA": "#ffd600", "playerA": "ดีเซล", "teamB": "#00ff66", "playerB": "อาเหยียน" },
+        { "id": 7, "round": 4, "type": "individual", "teamA": "#ffd600", "playerA": "Cani", "teamB": "#00f0ff", "playerB": "เอ็ดก้า" },
+        { "id": 8, "round": 4, "type": "individual", "teamA": "#00ff66", "playerA": "ฟลินน์", "teamB": "#ff4b5c", "playerB": "ปุณณ์" },
+        { "id": 9, "round": 5, "type": "individual", "teamA": "#00f0ff", "playerA": "ไทเป", "teamB": "#ff4b5c", "playerB": "นาคิน" },
+        { "id": 10, "round": 5, "type": "individual", "teamA": "#00ff66", "playerA": "ขอบคุณ", "teamB": "#ff4b5c", "playerB": "แมนต้า" },
+        { "id": 11, "round": 6, "type": "individual", "teamA": "#ffd600", "playerA": "พรีมพรีม", "teamB": "#00f0ff", "playerB": "โปรดปราน" },
+        { "id": 12, "round": 6, "type": "individual", "teamA": "#ffd600", "playerA": "ภาคิน", "teamB": "#00f0ff", "playerB": "อะตอมW" },
+        { "id": 13, "round": 7, "type": "individual", "teamA": "#ffd600", "playerA": "ใบบุญ", "teamB": "#00ff66", "playerB": "เลโก้" },
+        { "id": 14, "round": 7, "type": "individual", "teamA": "#ffd600", "playerA": "ก้าว", "teamB": "#00ff66", "playerB": "ปุณณ์ W" },
+        { "id": 15, "round": 8, "type": "individual", "teamA": "#00f0ff", "playerA": "อุ่นใจ", "teamB": "#ff4b5c", "playerB": "ตะวัน" },
+        { "id": 16, "round": 8, "type": "individual", "teamA": "#00f0ff", "playerA": "ปราบ", "teamB": "#ff4b5c", "playerB": "พายุ" },
+        { "id": 17, "round": 9, "type": "individual", "teamA": "#00f0ff", "playerA": "เชอริล", "teamB": "#ff4b5c", "playerB": "ท้องฟ้า" },
+        { "id": 18, "round": 9, "type": "individual", "teamA": "#ffd600", "playerA": "ไบรท์", "teamB": "#00f0ff", "playerB": "ภูเขา" },
+        { "id": 19, "round": 10, "type": "individual", "teamA": "#ffd600", "playerA": "อิงอิง", "teamB": "#00ff66", "playerB": "Glad" },
+        { "id": 20, "round": 10, "type": "individual", "teamA": "#00f0ff", "playerA": "อินเวสต์", "teamB": "#ff4b5c", "playerB": "ยูตะ" },
+        { "id": 21, "round": 11, "type": "individual", "teamA": "#ffd600", "playerA": "ลูกแก้ว", "teamB": "#00f0ff", "playerB": "เท็นเท็น" },
+        { "id": 22, "round": 11, "type": "individual", "teamA": "#00ff66", "playerA": "มีตังค์", "teamB": "#ff4b5c", "playerB": "TinTin" },
+        { "id": 23, "round": 12, "type": "individual", "teamA": "#00ff66", "playerA": "ฟรานส์", "teamB": "#ff4b5c", "playerB": "ฟีนิกซ์" },
+        { "id": 24, "round": 12, "type": "individual", "teamA": "#00ff66", "playerA": "ภัฅ", "teamB": "#ff4b5c", "playerB": "อคิณ" },
+        { "id": 25, "round": 14, "type": "individual", "teamA": "#ff4b5c", "playerA": "อาร์ชี่", "teamB": "#00ff66", "playerB": "ปุณณ์ W" }
     ],
+    // Game 2 — Hockey (2v2 สีปะทะสี)  — รอบสุดท้าย (round 14) = รอบเก็บตก จับเพื่อนรุ่นเดียวกันมาช่วยให้ครบ
     "2": [
-        {
-            "id": 1,
-            "round": 1,
-            "type": "pole",
-            "teamA": "#00f0ff",
-            "teamB": "#ff4b5c",
-            "playerA1": "อะตอมW",
-            "playerA2": "เอ็ดก้า",
-            "playerB1": "แมนต้า",
-            "playerB2": "ปุณณ์"
-        },
-        {
-            "id": 2,
-            "round": 2,
-            "type": "pole",
-            "teamA": "#00f0ff",
-            "teamB": "#ff4b5c",
-            "playerA1": "ภูเขา",
-            "playerA2": "โปรดปราน",
-            "playerB1": "TinTin",
-            "playerB2": "ฟีนิกซ์"
-        },
-        {
-            "id": 3,
-            "round": 3,
-            "type": "pole",
-            "teamA": "#00f0ff",
-            "teamB": "#ff4b5c",
-            "playerA1": "กราฟิก",
-            "playerA2": "อินเวสต์",
-            "playerB1": "อคิณ",
-            "playerB2": "พายุ"
-        },
-        {
-            "id": 4,
-            "round": 4,
-            "type": "pole",
-            "teamA": "#ffd600",
-            "teamB": "#00f0ff",
-            "playerA1": "ลูกแก้ว",
-            "playerA2": "ไบรท์",
-            "playerB1": "ปราบ",
-            "playerB2": "ณคุณ"
-        },
-        {
-            "id": 5,
-            "round": 5,
-            "type": "pole",
-            "teamA": "#ffd600",
-            "teamB": "#00ff66",
-            "playerA1": "ดีเซล",
-            "playerA2": "ใบบุญ",
-            "playerB1": "ปุงปัง",
-            "playerB2": "อาเหยียน"
-        },
-        {
-            "id": 6,
-            "round": 6,
-            "type": "pole",
-            "teamA": "#ffd600",
-            "teamB": "#00f0ff",
-            "playerA1": "พรีมพรีม",
-            "playerA2": "ภาคิน",
-            "playerB1": "อุ่นใจ",
-            "playerB2": "เชอริล"
-        },
-        {
-            "id": 7,
-            "round": 7,
-            "type": "pole",
-            "teamA": "#ffd600",
-            "teamB": "#00ff66",
-            "playerA1": "ก้าว",
-            "playerA2": "เซนต์",
-            "playerB1": "ปุณณ์ W",
-            "playerB2": "เลโก้"
-        },
-        {
-            "id": 8,
-            "round": 8,
-            "type": "pole",
-            "teamA": "#00ff66",
-            "teamB": "#ff4b5c",
-            "playerA1": "ภัฅ",
-            "playerA2": "มีตังค์",
-            "playerB1": "ยูตะ",
-            "playerB2": "ภูผา"
-        },
-        {
-            "id": 9,
-            "round": 9,
-            "type": "pole",
-            "teamA": "#ffd600",
-            "teamB": "#00f0ff",
-            "playerA1": "อิงอิง",
-            "playerA2": "Cani",
-            "playerB1": "กราฟิก",
-            "playerB2": "อินเวสต์"
-        },
-        {
-            "id": 10,
-            "round": 10,
-            "type": "pole",
-            "teamA": "#00f0ff",
-            "teamB": "#ff4b5c",
-            "playerA1": "ไทเป",
-            "playerA2": "เท็นเท็น",
-            "playerB1": "ตะวัน",
-            "playerB2": "นาคิน"
-        },
-        {
-            "id": 11,
-            "round": 11,
-            "type": "pole",
-            "teamA": "#00ff66",
-            "teamB": "#ff4b5c",
-            "playerA1": "นาคินทร์",
-            "playerA2": "ขอบคุณ",
-            "playerB1": "พายุ",
-            "playerB2": "ท้องฟ้า"
-        },
-        {
-            "id": 12,
-            "round": 12,
-            "type": "pole",
-            "teamA": "#00ff66",
-            "teamB": "#ff4b5c",
-            "playerA1": "ฟลินน์",
-            "playerA2": "ฟรานส์",
-            "playerB1": "อาร์ชี่",
-            "playerB2": "ลอฟต์"
-        },
-        {
-            "id": 13,
-            "round": 13,
-            "type": "pole",
-            "teamA": "#ffd600",
-            "teamB": "#00ff66",
-            "playerA1": "จินดา",
-            "playerA2": "คิน",
-            "playerB1": "เชฟ",
-            "playerB2": "Glad"
-        }
+        { "id": 1, "round": 1, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "ตะวัน", "playerA2": "พายุ", "playerB1": "ใบบุญ", "playerB2": "อิงอิง" },
+        { "id": 2, "round": 2, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "เอ็ดก้า", "playerA2": "ภูเขา", "playerB1": "มีตังค์", "playerB2": "ขอบคุณ" },
+        { "id": 3, "round": 3, "type": "pole", "teamA": "#ffd600", "teamB": "#00f0ff", "playerA1": "ก้าว", "playerA2": "ลูกแก้ว", "playerB1": "อุ่นใจ", "playerB2": "เชอริล" },
+        { "id": 4, "round": 4, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "เท็นเท็น", "playerA2": "อะตอมW", "playerB1": "ภัฅ", "playerB2": "ฟรานส์" },
+        { "id": 5, "round": 5, "type": "pole", "teamA": "#ff4b5c", "teamB": "#00ff66", "playerA1": "ท้องฟ้า", "playerA2": "ยูตะ", "playerB1": "เลโก้", "playerB2": "นาคินทร์" },
+        { "id": 6, "round": 6, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "ฟีนิกซ์", "playerA2": "TinTin", "playerB1": "ไบรท์", "playerB2": "Cani" },
+        { "id": 7, "round": 7, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "ลอฟต์", "playerA2": "ภูผา", "playerB1": "เซนต์", "playerB2": "คิน" },
+        { "id": 8, "round": 8, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "อินเวสต์", "playerA2": "ไทเป", "playerB1": "Glad", "playerB2": "ปุงปัง" },
+        { "id": 9, "round": 9, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "อาร์ชี่", "playerA2": "นาคิน", "playerB1": "ดีเซล", "playerB2": "จินดา" },
+        { "id": 10, "round": 10, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "ปราบ", "playerA2": "ณคุณ", "playerB1": "ปุณณ์ W", "playerB2": "อาเหยียน" },
+        { "id": 11, "round": 11, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "ปุณณ์", "playerA2": "แมนต้า", "playerB1": "ภาคิน", "playerB2": "พรีมพรีม" },
+        { "id": 12, "round": 12, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "กราฟิก", "playerA2": "โปรดปราน", "playerB1": "เชฟ", "playerB2": "ฟลินน์" },
+        { "id": 13, "round": 14, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "อคิณ", "playerA2": "แมนต้า", "playerB1": "ลูกแก้ว", "playerB2": "ภาคิน" }
     ],
+    // Game 3 — Fishing (4 สี สีละ 1 คน)  — รอบสุดท้าย (round 14) = รอบเก็บตก จับเพื่อนรุ่นเดียวกันมาช่วยให้ครบ
     "3": [
-        {
-            "id": 1,
-            "round": 1,
-            "type": "fishing",
-            "playerYellow": "อิงอิง",
-            "playerGreen": "นาคินทร์",
-            "playerBlue": "ไทเป",
-            "playerRed": "ตะวัน"
-        },
-        {
-            "id": 2,
-            "round": 2,
-            "type": "fishing",
-            "playerYellow": "คิน",
-            "playerGreen": "Glad",
-            "playerBlue": "ณคุณ",
-            "playerRed": "ภูผา"
-        },
-        {
-            "id": 3,
-            "round": 3,
-            "type": "fishing",
-            "playerYellow": "ดีเซล",
-            "playerGreen": "ปุงปัง",
-            "playerBlue": "อุ่นใจ",
-            "playerRed": "อาร์ชี่"
-        },
-        {
-            "id": 4,
-            "round": 4,
-            "type": "fishing",
-            "playerYellow": "พรีมพรีม",
-            "playerGreen": "ฟลินน์",
-            "playerBlue": "ภูเขา",
-            "playerRed": "TinTin"
-        },
-        {
-            "id": 5,
-            "round": 5,
-            "type": "fishing",
-            "playerYellow": "เซนต์",
-            "playerGreen": "เลโก้",
-            "playerBlue": "อินเวสต์",
-            "playerRed": "ท้องฟ้า"
-        },
-        {
-            "id": 6,
-            "round": 6,
-            "type": "fishing",
-            "playerYellow": "ลูกแก้ว",
-            "playerGreen": "ภัฅ",
-            "playerBlue": "อะตอมW",
-            "playerRed": "แมนต้า"
-        },
-        {
-            "id": 7,
-            "round": 7,
-            "type": "fishing",
-            "playerYellow": "Cani",
-            "playerGreen": "ขอบคุณ",
-            "playerBlue": "เท็นเท็น",
-            "playerRed": "นาคิน"
-        },
-        {
-            "id": 8,
-            "round": 8,
-            "type": "fishing",
-            "playerYellow": "ภาคิน",
-            "playerGreen": "ฟรานส์",
-            "playerBlue": "โปรดปราน",
-            "playerRed": "ฟีนิกซ์"
-        },
-        {
-            "id": 9,
-            "round": 9,
-            "type": "fishing",
-            "playerYellow": "ใบบุญ",
-            "playerGreen": "อาเหยียน",
-            "playerBlue": "เชอริล",
-            "playerRed": "ลอฟต์"
-        },
-        {
-            "id": 10,
-            "round": 10,
-            "type": "fishing",
-            "playerYellow": "จินดา",
-            "playerGreen": "เชฟ",
-            "playerBlue": "ปราบ",
-            "playerRed": "ยูตะ"
-        },
-        {
-            "id": 11,
-            "round": 11,
-            "type": "fishing",
-            "playerYellow": "ก้าว",
-            "playerGreen": "ปุณณ์ W",
-            "playerBlue": "กราฟิก",
-            "playerRed": "อคิณ"
-        },
-        {
-            "id": 12,
-            "round": 12,
-            "type": "fishing",
-            "playerYellow": "ไบรท์",
-            "playerGreen": "มีตังค์",
-            "playerBlue": "เอ็ดก้า",
-            "playerRed": "ปุณณ์"
-        },
-        {
-            "id": 13,
-            "round": 13,
-            "type": "fishing",
-            "playerYellow": "ก้าว",
-            "playerGreen": "ปุณณ์ W",
-            "playerBlue": "กราฟิก",
-            "playerRed": "พายุ"
-        }
+        { "id": 1, "round": 1, "type": "fishing", "playerYellow": "คิน", "playerGreen": "ปุณณ์ W", "playerBlue": "อินเวสต์", "playerRed": "ยูตะ" },
+        { "id": 2, "round": 2, "type": "fishing", "playerYellow": "Cani", "playerGreen": "ฟรานส์", "playerBlue": "เท็นเท็น", "playerRed": "แมนต้า" },
+        { "id": 3, "round": 3, "type": "fishing", "playerYellow": "จินดา", "playerGreen": "เลโก้", "playerBlue": "ไทเป", "playerRed": "พายุ" },
+        { "id": 4, "round": 4, "type": "fishing", "playerYellow": "พรีมพรีม", "playerGreen": "มีตังค์", "playerBlue": "โปรดปราน", "playerRed": "TinTin" },
+        { "id": 5, "round": 5, "type": "fishing", "playerYellow": "ดีเซล", "playerGreen": "เชฟ", "playerBlue": "เชอริล", "playerRed": "ภูผา" },
+        { "id": 6, "round": 6, "type": "fishing", "playerYellow": "ก้าว", "playerGreen": "ปุงปัง", "playerBlue": "ปราบ", "playerRed": "ตะวัน" },
+        { "id": 7, "round": 7, "type": "fishing", "playerYellow": "อิงอิง", "playerGreen": "อาเหยียน", "playerBlue": "ณคุณ", "playerRed": "ท้องฟ้า" },
+        { "id": 8, "round": 8, "type": "fishing", "playerYellow": "ลูกแก้ว", "playerGreen": "ภัฅ", "playerBlue": "อะตอมW", "playerRed": "ปุณณ์" },
+        { "id": 9, "round": 9, "type": "fishing", "playerYellow": "เซนต์", "playerGreen": "นาคินทร์", "playerBlue": "กราฟิก", "playerRed": "ลอฟต์" },
+        { "id": 10, "round": 10, "type": "fishing", "playerYellow": "ภาคิน", "playerGreen": "ฟลินน์", "playerBlue": "เอ็ดก้า", "playerRed": "ฟีนิกซ์" },
+        { "id": 11, "round": 11, "type": "fishing", "playerYellow": "ไบรท์", "playerGreen": "ขอบคุณ", "playerBlue": "ภูเขา", "playerRed": "อคิณ" },
+        { "id": 12, "round": 12, "type": "fishing", "playerYellow": "ใบบุญ", "playerGreen": "Glad", "playerBlue": "อุ่นใจ", "playerRed": "อาร์ชี่" },
+        { "id": 13, "round": 14, "type": "fishing", "playerYellow": "ใบบุญ", "playerGreen": "ปุงปัง", "playerBlue": "เชอริล", "playerRed": "นาคิน" }
     ],
+    // Game 4 — Pole Fighting (2v2 สีปะทะสี)  — รอบสุดท้าย (round 14) = รอบเก็บตก จับเพื่อนรุ่นเดียวกันมาช่วยให้ครบ
     "4": [
-        {
-            "id": 1,
-            "round": 1,
-            "type": "pole",
-            "teamA": "#00ff66",
-            "teamB": "#00f0ff",
-            "playerA1": "ปุณณ์ W",
-            "playerA2": "ปุงปัง",
-            "playerB1": "กราฟิก",
-            "playerB2": "อุ่นใจ"
-        },
-        {
-            "id": 2,
-            "round": 2,
-            "type": "pole",
-            "teamA": "#ffd600",
-            "teamB": "#00ff66",
-            "playerA1": "พรีมพรีม",
-            "playerA2": "ลูกแก้ว",
-            "playerB1": "ฟลินน์",
-            "playerB2": "ภัฅ"
-        },
-        {
-            "id": 3,
-            "round": 3,
-            "type": "pole",
-            "teamA": "#ffd600",
-            "teamB": "#ff4b5c",
-            "playerA1": "เซนต์",
-            "playerA2": "ใบบุญ",
-            "playerB1": "ท้องฟ้า",
-            "playerB2": "ลอฟต์"
-        },
-        {
-            "id": 4,
-            "round": 4,
-            "type": "pole",
-            "teamA": "#ffd600",
-            "teamB": "#ff4b5c",
-            "playerA1": "จินดา",
-            "playerA2": "อิงอิง",
-            "playerB1": "ยูตะ",
-            "playerB2": "ตะวัน"
-        },
-        {
-            "id": 5,
-            "round": 5,
-            "type": "pole",
-            "teamA": "#ffd600",
-            "teamB": "#00ff66",
-            "playerA1": "คิน",
-            "playerA2": "Cani",
-            "playerB1": "Glad",
-            "playerB2": "ขอบคุณ"
-        },
-        {
-            "id": 6,
-            "round": 6,
-            "type": "pole",
-            "teamA": "#00f0ff",
-            "teamB": "#ff4b5c",
-            "playerA1": "โปรดปราน",
-            "playerA2": "เอ็ดก้า",
-            "playerB1": "ฟีนิกซ์",
-            "playerB2": "ปุณณ์"
-        },
-        {
-            "id": 7,
-            "round": 7,
-            "type": "pole",
-            "teamA": "#00ff66",
-            "teamB": "#00f0ff",
-            "playerA1": "เชฟ",
-            "playerA2": "นาคินทร์",
-            "playerB1": "ปราบ",
-            "playerB2": "ไทเป"
-        },
-        {
-            "id": 8,
-            "round": 8,
-            "type": "pole",
-            "teamA": "#00f0ff",
-            "teamB": "#ff4b5c",
-            "playerA1": "ภูเขา",
-            "playerA2": "อะตอมW",
-            "playerB1": "TinTin",
-            "playerB2": "แมนต้า"
-        },
-        {
-            "id": 9,
-            "round": 9,
-            "type": "pole",
-            "teamA": "#ffd600",
-            "teamB": "#ff4b5c",
-            "playerA1": "ก้าว",
-            "playerA2": "ดีเซล",
-            "playerB1": "พายุ",
-            "playerB2": "อาร์ชี่"
-        },
-        {
-            "id": 10,
-            "round": 10,
-            "type": "pole",
-            "teamA": "#ffd600",
-            "teamB": "#00ff66",
-            "playerA1": "ภาคิน",
-            "playerA2": "ไบรท์",
-            "playerB1": "ฟรานส์",
-            "playerB2": "มีตังค์"
-        },
-        {
-            "id": 11,
-            "round": 11,
-            "type": "pole",
-            "teamA": "#00ff66",
-            "teamB": "#00f0ff",
-            "playerA1": "เลโก้",
-            "playerA2": "อาเหยียน",
-            "playerB1": "อินเวสต์",
-            "playerB2": "เชอริล"
-        },
-        {
-            "id": 12,
-            "round": 12,
-            "type": "pole",
-            "teamA": "#00f0ff",
-            "teamB": "#ff4b5c",
-            "playerA1": "ณคุณ",
-            "playerA2": "เท็นเท็น",
-            "playerB1": "ภูผา",
-            "playerB2": "นาคิน"
-        },
-        {
-            "id": 13,
-            "round": 13,
-            "type": "pole",
-            "teamA": "#00f0ff",
-            "teamB": "#ff4b5c",
-            "playerA1": "อุ่นใจ",
-            "playerA2": "เชอริล",
-            "playerB1": "อคิณ",
-            "playerB2": "ท้องฟ้า"
-        }
+        { "id": 1, "round": 1, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "เชอริล", "playerA2": "ไทเป", "playerB1": "เลโก้", "playerB2": "อาเหยียน" },
+        { "id": 2, "round": 2, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "ฟีนิกซ์", "playerA2": "ปุณณ์", "playerB1": "ภาคิน", "playerB2": "พรีมพรีม" },
+        { "id": 3, "round": 3, "type": "pole", "teamA": "#ff4b5c", "teamB": "#00ff66", "playerA1": "นาคิน", "playerA2": "ตะวัน", "playerB1": "เชฟ", "playerB2": "ปุงปัง" },
+        { "id": 4, "round": 4, "type": "pole", "teamA": "#ffd600", "teamB": "#00f0ff", "playerA1": "อิงอิง", "playerA2": "ไบรท์", "playerB1": "อินเวสต์", "playerB2": "ปราบ" },
+        { "id": 5, "round": 5, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "กราฟิก", "playerA2": "อุ่นใจ", "playerB1": "ปุณณ์ W", "playerB2": "Glad" },
+        { "id": 6, "round": 6, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "ภูเขา", "playerA2": "เท็นเท็น", "playerB1": "มีตังค์", "playerB2": "ภัฅ" },
+        { "id": 7, "round": 7, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "อาร์ชี่", "playerA2": "ยูตะ", "playerB1": "จินดา", "playerB2": "ดีเซล" },
+        { "id": 8, "round": 8, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "โปรดปราน", "playerA2": "เอ็ดก้า", "playerB1": "ขอบคุณ", "playerB2": "ฟรานส์" },
+        { "id": 9, "round": 9, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "แมนต้า", "playerA2": "อคิณ", "playerB1": "Cani", "playerB2": "ลูกแก้ว" },
+        { "id": 10, "round": 10, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "ภูผา", "playerA2": "พายุ", "playerB1": "คิน", "playerB2": "ใบบุญ" },
+        { "id": 11, "round": 11, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "ลอฟต์", "playerA2": "ท้องฟ้า", "playerB1": "ก้าว", "playerB2": "เซนต์" },
+        { "id": 12, "round": 13, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "ณคุณ", "playerA2": "อะตอมW", "playerB1": "นาคินทร์", "playerB2": "ฟลินน์" },
+        { "id": 13, "round": 14, "type": "pole", "teamA": "#ff4b5c", "teamB": "#00ff66", "playerA1": "TinTin", "playerA2": "ฟีนิกซ์", "playerB1": "ฟลินน์", "playerB2": "ภัฅ" }
     ]
 };
 
@@ -2934,6 +2237,7 @@ const SUNDAY_BIG_MATCHES = {
 };
 
 
+// Player Name Auto-Suggestions Logic (Separated by Category and Color Hex)
 const COLOR_SUGGESTIONS = {
     'saturday': {
         '#00f0ff': ['ดาวา', 'อันดา', 'อายซิลต์', 'เจเจ', 'เมทัล', 'เมิ้นท์'],
@@ -3024,7 +2328,6 @@ function renderStats() {
     const isFishingGame = checkIfFishingGame(state.activeGame, state.activeCategory);
     const isPoleGame = checkIfPoleGame(state.activeGame, state.activeCategory);
     
-    const isPP4Way = checkIfPickPlace4Way(state.activeGame, state.activeCategory);
     if (isFishingGame) {
         if (totalPlayersLabel) totalPlayersLabel.textContent = 'รอบทั้งหมด';
         if (highScoreLabel) highScoreLabel.textContent = 'ปลาทั้งหมด (ตัว)';
@@ -3037,18 +2340,6 @@ function renderStats() {
         
         DOM.statTotalPlayers.textContent = totalRounds;
         DOM.statHighScore.textContent = formatNumber(totalFish);
-    } else if (isPP4Way) {
-        if (totalPlayersLabel) totalPlayersLabel.textContent = 'รอบทั้งหมด';
-        if (highScoreLabel) highScoreLabel.textContent = 'น้ำหนักรวม (กก.)';
-        
-        let totalRounds = activeScores.length;
-        let totalWeight = 0;
-        activeScores.forEach(round => {
-            totalWeight += (round.weightBlue || 0) + (round.weightGreen || 0) + (round.weightYellow || 0) + (round.weightRed || 0);
-        });
-        
-        DOM.statTotalPlayers.textContent = totalRounds;
-        DOM.statHighScore.textContent = formatNumber(totalWeight);
     } else if (isMatchupGame || isPoleGame) {
         if (totalPlayersLabel) totalPlayersLabel.textContent = 'แมตช์ทั้งหมด';
         if (highScoreLabel) highScoreLabel.textContent = 'คะแนนนำสูงสุด';
@@ -3479,14 +2770,14 @@ function renderChart(sortedPlayers) {
 
 // Render the pre-configured match list for Sunday Small
 function renderSundaySmallMatches(allScores, searchQuery) {
-    const matchesSource = state.activeCategory === 'sunday_big' ? SUNDAY_BIG_MATCHES : SUNDAY_SMALL_MATCHES;
-    const activeMatches = matchesSource[state.activeGame] || [];
+    const dataset = state.activeCategory === 'sunday_big' ? SUNDAY_BIG_MATCHES : SUNDAY_SMALL_MATCHES;
+    const activeMatches = dataset[state.activeGame] || [];
     
     // Filter matches based on search query
     const filtered = activeMatches.filter(match => {
         if (!searchQuery) return true;
         if (match.type === 'individual') {
-            return match.player.toLowerCase().includes(searchQuery);
+            return [match.playerA, match.playerB].some(name => name && name.toLowerCase().includes(searchQuery));
         } else if (match.type === 'pole') {
             return [match.playerA1, match.playerA2, match.playerB1, match.playerB2].some(name => name && name.toLowerCase().includes(searchQuery));
         } else if (match.type === 'fishing') {
@@ -3509,140 +2800,6 @@ function renderSundaySmallMatches(allScores, searchQuery) {
         return;
     }
 
-    if (state.activeGame === "1" && state.activeCategory === 'sunday_small') {
-        // Group Game 1 (Bowling/Pick & Place, individual) by round (1 to 12 or 13)
-        const totalRounds = state.activeCategory === 'sunday_big' ? 12 : 13;
-        const matchesByRound = {};
-        for (let r = 1; r <= totalRounds; r++) {
-            matchesByRound[r] = [];
-        }
-        filtered.forEach(match => {
-            const r = match.round || 1;
-            if (!matchesByRound[r]) matchesByRound[r] = [];
-            matchesByRound[r].push(match);
-        });
-
-        for (let r = 1; r <= totalRounds; r++) {
-            const roundMatches = matchesByRound[r];
-            if (roundMatches.length === 0) continue; 
-
-            const hasActiveInRound = roundMatches.some(m => state.activeMatchId === m.id.toString());
-            
-            const roundSection = document.createElement('div');
-            roundSection.className = `round-section ${hasActiveInRound ? 'has-active-match' : ''}`;
-            
-            const header = document.createElement('div');
-            header.className = 'round-header';
-            header.innerHTML = `
-                <div class="round-title">รอบที่ ${r}</div>
-                <div class="round-player-count">ผู้เล่น ${roundMatches.length} คน</div>
-                <span class="chevron">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                </span>
-            `;
-            
-            const body = document.createElement('div');
-            body.className = 'round-body';
-            
-            roundSection.appendChild(header);
-            roundSection.appendChild(body);
-            DOM.leaderboardList.appendChild(roundSection);
-
-            header.addEventListener('click', () => {
-                roundSection.classList.toggle('collapsed');
-            });
-
-            roundMatches.forEach(match => {
-                const card = document.createElement('div');
-                const isCurrentActive = state.activeMatchId === match.id.toString();
-                card.className = `player-card match-card ${isCurrentActive ? 'active-match' : ''}`;
-                
-                let record = allScores.find(p => p.matchId === match.id.toString() || (!p.matchId && p.name === match.player));
-                let isPlayed = !!record;
-
-                if (isPlayed) card.classList.add('played-match');
-                card.style.borderLeft = `4px solid ${match.color}`;
-                
-                const colorName = HEX_TO_NAME[match.color] || '';
-                let extra = '';
-                if (isPlayed) {
-                    if (state.activeCategory === 'sunday_big') {
-                        const winLabel = record.result === 'win' ? 'ชนะ' : 'แพ้';
-                        extra = `[${winLabel}] [น้ำหนัก: ${record.weight || 0} กก.]`;
-                    } else {
-                        if (record.score === 100) extra = '[โดน 3 อัน]';
-                        else if (record.score === 60) extra = '[โดน 2 อัน]';
-                        else if (record.score === 30) extra = '[โดน 1 อัน]';
-                        else extra = '[โดน 0 อัน]';
-                    }
-                }
-
-                card.innerHTML = `
-                    <div class="rank-badge" style="font-size: 0.85rem; width: auto; padding: 0 0.5rem; background: rgba(255,255,255,0.03); color: var(--text-secondary);">คิวที่ ${match.id}</div>
-                    <div class="player-name" style="display:flex; flex-direction:column; gap:0.2rem; width: 100%; overflow: visible; white-space: normal;">
-                        <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap: wrap;">
-                            <span class="color-dot" style="background-color: ${match.color}; margin-right: 0; box-shadow: 0 0 6px ${match.color}a0;"></span>
-                            <span style="font-weight: 700; font-size:1.05rem;">น้อง${escapeHTML(match.player)}</span>
-                            <span style="color: var(--text-muted); font-size:0.8rem;">(ทีมสี${colorName})</span>
-                        </div>
-                        ${isPlayed ? `<div style="font-size:0.85rem; color:#00ff66; font-weight:600; text-shadow:0 0 8px #00ff6640;">คะแนน: ${formatNumber(record.score)} แต้ม ${extra}</div>` : '<div style="font-size:0.85rem; color:var(--text-muted);">สถานะ: ยังไม่ได้แข่ง</div>'}
-                    </div>
-                    <div class="card-actions">
-                        ${isPlayed ? `
-                            <button class="icon-btn btn-edit" title="แก้ไขคะแนน" data-id="${record.id}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-                            <button class="icon-btn btn-delete" title="ลบข้อมูล" data-id="${record.id}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
-                        ` : `
-                            <button class="btn-primary btn-play-match" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; border-radius: 8px; font-weight: 700; background: var(--accent); color: #000; border: none; cursor: pointer; display: flex; align-items: center; gap: 4px; box-shadow: 0 0 8px var(--accent-glow);">
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                                เริ่มแข่ง
-                            </button>
-                        `}
-                    </div>
-                `;
-
-                if (isPlayed) {
-                    card.querySelector('.btn-edit').addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        enterEditMode(record);
-                        state.activeMatchId = match.id.toString();
-                        renderLeaderboard();
-                    });
-                    card.querySelector('.btn-delete').addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        deletePlayer(record.id);
-                    });
-                } else {
-                    card.querySelector('.btn-play-match').addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        selectColorByHex(match.color);
-                        DOM.playerNameInput.value = match.player;
-                        state.activeMatchId = match.id.toString();
-                        
-                        document.querySelectorAll('#objects-hit-group .objects-selector button').forEach(btn => {
-                            btn.classList.toggle('active', btn.getAttribute('data-hits') === '0');
-                        });
-                        const wBtn = document.getElementById('btn-result-win');
-                        const lBtn = document.getElementById('btn-result-loss');
-                        if (wBtn && lBtn) {
-                            wBtn.classList.add('active');
-                            lBtn.classList.remove('active');
-                        }
-                        DOM.playerScoreInput.value = '0';
-                        
-                        DOM.scoreForm.scrollIntoView({ behavior: 'smooth' });
-                        renderLeaderboard();
-                        showToast(`เตรียมตัวคู่แข่งสำหรับ น้อง${match.player}`, "info");
-                    });
-                }
-
-                body.appendChild(card);
-            });
-        }
-        return;
-    }
-
     filtered.forEach(match => {
         const card = document.createElement('div');
         const isCurrentActive = state.activeMatchId === match.id.toString();
@@ -3651,7 +2808,108 @@ function renderSundaySmallMatches(allScores, searchQuery) {
         let record = null;
         let isPlayed = false;
 
-        if (match.type === 'pole') {
+        if (match.type === 'individual') {
+    const matchIdA = match.id.toString() + '-A';
+    const matchIdB = match.id.toString() + '-B';
+    const recordA = allScores.find(p => p.matchId === matchIdA || (!p.matchId && p.name === match.playerA));
+    const recordB = allScores.find(p => p.matchId === matchIdB || (!p.matchId && p.name === match.playerB));
+    const isPlayedA = !!recordA;
+    const isPlayedB = !!recordB;
+    isPlayed = isPlayedA && isPlayedB;
+
+    if (isPlayed) card.classList.add('played-match');
+    card.style.background = `linear-gradient(90deg, ${match.teamA}0d 0%, ${match.teamB}0d 100%)`;
+    card.style.borderLeft = `4px solid ${match.teamA}`;
+    card.style.borderRight = `4px solid ${match.teamB}`;
+
+    const nameAColor = HEX_TO_NAME[match.teamA] || '';
+    const nameBColor = HEX_TO_NAME[match.teamB] || '';
+
+    const hitsLabel = (rec) => {
+        if (!rec) return '';
+        if (rec.score === 100) return '[โดน 3 อัน]';
+        if (rec.score === 60) return '[โดน 2 อัน]';
+        if (rec.score === 30) return '[โดน 1 อัน]';
+        return '[โดน 0 อัน]';
+    };
+
+    const playBtnHTML = `
+        <button class="btn-primary btn-play-match" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; border-radius: 8px; font-weight: 700; background: var(--accent); color: #000; border: none; cursor: pointer; display: flex; align-items: center; gap: 4px; box-shadow: 0 0 8px var(--accent-glow);">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            เริ่มแข่ง
+        </button>
+    `;
+    const editBtnHTML = (id) => `
+        <button class="icon-btn btn-edit" title="แก้ไขคะแนน" data-id="${id}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+    `;
+
+    card.innerHTML = `
+        <div class="rank-badge" style="font-size: 0.85rem; width: auto; padding: 0 0.5rem; background: rgba(255,255,255,0.03); color: var(--text-secondary);">รอบที่ ${match.id}</div>
+        <div class="player-name" style="display:flex; flex-direction:column; gap:0.4rem; width: 100%; overflow: visible; white-space: normal;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <span class="color-dot" style="background-color: ${match.teamA}; box-shadow: 0 0 6px ${match.teamA}a0;"></span>
+                    <span style="font-weight: 700; font-size:1.05rem;">น้อง${escapeHTML(match.playerA)}</span>
+                    <span style="color: var(--text-muted); font-size:0.8rem;">(ทีมสี${nameAColor})</span>
+                    ${isPlayedA ? `<span style="font-size:0.85rem; color:#00ff66; font-weight:600; text-shadow:0 0 8px #00ff6640;">คะแนน: ${formatNumber(recordA.score)} แต้ม ${hitsLabel(recordA)}</span>` : `<span style="font-size:0.85rem; color:var(--text-muted);">ยังไม่ได้แข่ง</span>`}
+                </div>
+                <div class="card-actions" style="margin:0;">${isPlayedA ? editBtnHTML(recordA.id) : playBtnHTML}</div>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <span class="color-dot" style="background-color: ${match.teamB}; box-shadow: 0 0 6px ${match.teamB}a0;"></span>
+                    <span style="font-weight: 700; font-size:1.05rem;">น้อง${escapeHTML(match.playerB)}</span>
+                    <span style="color: var(--text-muted); font-size:0.8rem;">(ทีมสี${nameBColor})</span>
+                    ${isPlayedB ? `<span style="font-size:0.85rem; color:#00ff66; font-weight:600; text-shadow:0 0 8px #00ff6640;">คะแนน: ${formatNumber(recordB.score)} แต้ม ${hitsLabel(recordB)}</span>` : `<span style="font-size:0.85rem; color:var(--text-muted);">ยังไม่ได้แข่ง</span>`}
+                </div>
+                <div class="card-actions" style="margin:0;">${isPlayedB ? editBtnHTML(recordB.id) : playBtnHTML}</div>
+            </div>
+        </div>
+        <div class="card-actions"></div>
+    `;
+
+    const startPlayer = (matchId, hex, name) => {
+        selectColorByHex(hex);
+        DOM.playerNameInput.value = name;
+        state.activeMatchId = matchId;
+        document.querySelectorAll('#objects-hit-group .objects-selector button').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-hits') === '0');
+        });
+        DOM.playerScoreInput.value = '0';
+        DOM.scoreForm.scrollIntoView({ behavior: 'smooth' });
+        renderLeaderboard();
+        showToast(`เตรียมตัวคู่ที่ ${match.id}: น้อง${name}`, "info");
+    };
+
+    const rowAActionEl = card.querySelectorAll('.card-actions')[0];
+    const rowBActionEl = card.querySelectorAll('.card-actions')[1];
+
+    if (isPlayedA) {
+        rowAActionEl.querySelector('.btn-edit').addEventListener('click', () => {
+            enterEditMode(recordA);
+            state.activeMatchId = matchIdA;
+            renderLeaderboard();
+        });
+    } else {
+        rowAActionEl.querySelector('.btn-play-match').addEventListener('click', () => {
+            startPlayer(matchIdA, match.teamA, match.playerA);
+        });
+    }
+
+    if (isPlayedB) {
+        rowBActionEl.querySelector('.btn-edit').addEventListener('click', () => {
+            enterEditMode(recordB);
+            state.activeMatchId = matchIdB;
+            renderLeaderboard();
+        });
+    } else {
+        rowBActionEl.querySelector('.btn-play-match').addEventListener('click', () => {
+            startPlayer(matchIdB, match.teamB, match.playerB);
+        });
+    }
+}
+        else if (match.type === 'pole') {
+            // Find score for Game 2 (Hockey) & Game 4 (Pole Fighting)
             record = allScores.find(p => p.matchId === match.id.toString() || (!p.matchId && p.playerA1 === match.playerA1 && p.playerA2 === match.playerA2 && p.playerB1 === match.playerB1 && p.playerB2 === match.playerB2));
             isPlayed = !!record;
 
@@ -3736,6 +2994,7 @@ function renderSundaySmallMatches(allScores, searchQuery) {
             }
         } 
         else if (match.type === 'fishing') {
+            // Find score for Game 3 (Fishing)
             record = allScores.find(p => p.matchId === match.id.toString() || (!p.matchId && p.nameYellow === match.playerYellow && p.nameGreen === match.playerGreen && p.nameBlue === match.playerBlue && p.nameRed === match.playerRed));
             isPlayed = !!record;
 
@@ -3743,33 +3002,16 @@ function renderSundaySmallMatches(allScores, searchQuery) {
             card.style.background = `rgba(255, 255, 255, 0.01)`;
             card.style.borderLeft = `4px solid #ffd600`;
 
-            const isPickPlace = getActiveGameName(state.activeGame) === 'Pick and Place';
-
             let resultHTML = '';
             if (isPlayed) {
-                if (isPickPlace) {
-                    const winLabelY = record.resultYellow === 'win' ? 'ชนะ' : 'แพ้';
-                    const winLabelG = record.resultGreen === 'win' ? 'ชนะ' : 'แพ้';
-                    const winLabelB = record.resultBlue === 'win' ? 'ชนะ' : 'แพ้';
-                    const winLabelR = record.resultRed === 'win' ? 'ชนะ' : 'แพ้';
-                    resultHTML = `
-                        <div style="font-size:0.85rem; margin-top:0.3rem; display:flex; flex-wrap:wrap; gap:0.5rem 0.8rem; overflow:visible;">
-                            <span style="color: #ffd600; font-weight: 600;">🟡 ${escapeHTML(match.playerYellow)}: ${record.weightYellow} กก. [${winLabelY}] (${record.scoreYellow} แต้ม)</span>
-                            <span style="color: #00ff66; font-weight: 600;">🟢 ${escapeHTML(match.playerGreen)}: ${record.weightGreen} กก. [${winLabelG}] (${record.scoreGreen} แต้ม)</span>
-                            <span style="color: #00f0ff; font-weight: 600;">🔵 ${escapeHTML(match.playerBlue)}: ${record.weightBlue} กก. [${winLabelB}] (${record.scoreBlue} แต้ม)</span>
-                            <span style="color: #ff4b5c; font-weight: 600;">🔴 ${escapeHTML(match.playerRed)}: ${record.weightRed} กก. [${winLabelR}] (${record.scoreRed} แต้ม)</span>
-                        </div>
-                    `;
-                } else {
-                    resultHTML = `
-                        <div style="font-size:0.85rem; margin-top:0.3rem; display:flex; flex-wrap:wrap; gap:0.5rem 0.8rem; overflow:visible;">
-                            <span style="color: #ffd600; font-weight: 600;">🟡 ${escapeHTML(match.playerYellow)}: ${record.fishYellow} ตัว (${record.scoreYellow} แต้ม)</span>
-                            <span style="color: #00ff66; font-weight: 600;">🟢 ${escapeHTML(match.playerGreen)}: ${record.fishGreen} ตัว (${record.scoreGreen} แต้ม)</span>
-                            <span style="color: #00f0ff; font-weight: 600;">🔵 ${escapeHTML(match.playerBlue)}: ${record.fishBlue} ตัว (${record.scoreBlue} แต้ม)</span>
-                            <span style="color: #ff4b5c; font-weight: 600;">🔴 ${escapeHTML(match.playerRed)}: ${record.fishRed} ตัว (${record.scoreRed} แต้ม)</span>
-                        </div>
-                    `;
-                }
+                resultHTML = `
+                    <div style="font-size:0.85rem; margin-top:0.3rem; display:flex; flex-wrap:wrap; gap:0.5rem 0.8rem; overflow:visible;">
+                        <span style="color: #ffd600; font-weight: 600;">🟡 ${escapeHTML(match.playerYellow)}: ${record.fishYellow} ตัว (${record.scoreYellow} แต้ม)</span>
+                        <span style="color: #00ff66; font-weight: 600;">🟢 ${escapeHTML(match.playerGreen)}: ${record.fishGreen} ตัว (${record.scoreGreen} แต้ม)</span>
+                        <span style="color: #00f0ff; font-weight: 600;">🔵 ${escapeHTML(match.playerBlue)}: ${record.fishBlue} ตัว (${record.scoreBlue} แต้ม)</span>
+                        <span style="color: #ff4b5c; font-weight: 600;">🔴 ${escapeHTML(match.playerRed)}: ${record.fishRed} ตัว (${record.scoreRed} แต้ม)</span>
+                    </div>
+                `;
             } else {
                 resultHTML = `
                     <div style="font-size:0.85rem; margin-top:0.3rem; display:flex; flex-wrap:wrap; gap:0.5rem 0.8rem; overflow:visible;">
@@ -3784,7 +3026,7 @@ function renderSundaySmallMatches(allScores, searchQuery) {
             card.innerHTML = `
                 <div class="rank-badge" style="font-size: 0.85rem; width: auto; padding: 0 0.5rem; background: rgba(255,255,255,0.03); color: var(--text-secondary);">รอบที่ ${match.id}</div>
                 <div class="player-name" style="display:flex; flex-direction:column; gap:0.1rem; width: 100%; overflow: visible; white-space: normal;">
-                    <div style="font-size: 0.95rem; font-weight:600;">${isPickPlace ? 'การแข่ง Pick & Place 4 สี' : 'การแข่งตกปลา 4 สี'}</div>
+                    <div style="font-size: 0.95rem; font-weight:600;">การแข่งตกปลา 4 สี</div>
                     ${resultHTML}
                 </div>
                 <div class="card-actions">
@@ -3802,11 +3044,7 @@ function renderSundaySmallMatches(allScores, searchQuery) {
 
             if (isPlayed) {
                 card.querySelector('.btn-edit').addEventListener('click', () => {
-                    if (isPickPlace) {
-                        enterPP4EditMode(record);
-                    } else {
-                        enterFishingEditMode(record);
-                    }
+                    enterFishingEditMode(record);
                     state.activeMatchId = match.id.toString();
                     renderLeaderboard();
                 });
@@ -3814,72 +3052,35 @@ function renderSundaySmallMatches(allScores, searchQuery) {
             } else {
                 card.querySelector('.btn-play-match').addEventListener('click', () => {
                     state.activeMatchId = match.id.toString();
-                    if (isPickPlace) {
-                        updatePP4PlayerDropdowns();
-                        
-                        const selY = document.getElementById('pp4-player-yellow');
-                        const selG = document.getElementById('pp4-player-green');
-                        const selB = document.getElementById('pp4-player-blue');
-                        const selR = document.getElementById('pp4-player-red');
-                        
-                        if (selY) selY.value = match.playerYellow;
-                        if (selG) selG.value = match.playerGreen;
-                        if (selB) selB.value = match.playerBlue;
-                        if (selR) selR.value = match.playerRed;
-                        
-                        const wy = document.getElementById('pp4-weight-yellow');
-                        const wg = document.getElementById('pp4-weight-green');
-                        const wb = document.getElementById('pp4-weight-blue');
-                        const wr = document.getElementById('pp4-weight-red');
-                        if (wy) wy.value = '0';
-                        if (wg) wg.value = '0';
-                        if (wb) wb.value = '0';
-                        if (wr) wr.value = '0';
-                        
-                        const colors = ['yellow', 'green', 'blue', 'red'];
-                        colors.forEach(col => {
-                            const winBtn = document.getElementById(`pp4-win-${col}`);
-                            const lossBtn = document.getElementById(`pp4-loss-${col}`);
-                            if (winBtn && lossBtn) {
-                                winBtn.classList.add('active');
-                                lossBtn.classList.remove('active');
-                            }
-                        });
-                        
-                        DOM.scoreForm.scrollIntoView({ behavior: 'smooth' });
-                        renderLeaderboard();
-                        showToast(`เตรียมตัวแข่ง Pick & Place รอบที่ ${match.id}`, "info");
-                    } else {
-                        updateFishingPlayerDropdowns();
-                        
-                        const selY = document.getElementById('fishing-player-yellow');
-                        const selG = document.getElementById('fishing-player-green');
-                        const selB = document.getElementById('fishing-player-blue');
-                        const selR = document.getElementById('fishing-player-red');
-                        
-                        if (selY) selY.value = match.playerYellow;
-                        if (selG) selG.value = match.playerGreen;
-                        if (selB) selB.value = match.playerBlue;
-                        if (selR) selR.value = match.playerRed;
-                        
-                        const fb = document.getElementById('fishing-fish-blue');
-                        const fg = document.getElementById('fishing-fish-green');
-                        const fy = document.getElementById('fishing-fish-yellow');
-                        const fr = document.getElementById('fishing-fish-red');
-                        if (fb) fb.value = '0';
-                        if (fg) fg.value = '0';
-                        if (fy) fy.value = '0';
-                        if (fr) fr.value = '0';
-                        
-                        document.getElementById('fishing-score-blue').textContent = '0 แต้ม';
-                        document.getElementById('fishing-score-green').textContent = '0 แต้ม';
-                        document.getElementById('fishing-score-yellow').textContent = '0 แต้ม';
-                        document.getElementById('fishing-score-red').textContent = '0 แต้ม';
-                        
-                        DOM.scoreForm.scrollIntoView({ behavior: 'smooth' });
-                        renderLeaderboard();
-                        showToast(`เตรียมตัวรอบตกปลาที่ ${match.id}`, "info");
-                    }
+                    updateFishingPlayerDropdowns();
+                    
+                    const selY = document.getElementById('fishing-player-yellow');
+                    const selG = document.getElementById('fishing-player-green');
+                    const selB = document.getElementById('fishing-player-blue');
+                    const selR = document.getElementById('fishing-player-red');
+                    
+                    if (selY) selY.value = match.playerYellow;
+                    if (selG) selG.value = match.playerGreen;
+                    if (selB) selB.value = match.playerBlue;
+                    if (selR) selR.value = match.playerRed;
+                    
+                    const fb = document.getElementById('fishing-fish-blue');
+                    const fg = document.getElementById('fishing-fish-green');
+                    const fy = document.getElementById('fishing-fish-yellow');
+                    const fr = document.getElementById('fishing-fish-red');
+                    if (fb) fb.value = '0';
+                    if (fg) fg.value = '0';
+                    if (fy) fy.value = '0';
+                    if (fr) fr.value = '0';
+                    
+                    document.getElementById('fishing-score-blue').textContent = '0 แต้ม';
+                    document.getElementById('fishing-score-green').textContent = '0 แต้ม';
+                    document.getElementById('fishing-score-yellow').textContent = '0 แต้ม';
+                    document.getElementById('fishing-score-red').textContent = '0 แต้ม';
+                    
+                    DOM.scoreForm.scrollIntoView({ behavior: 'smooth' });
+                    renderLeaderboard();
+                    showToast(`เตรียมตัวรอบตกปลาที่ ${match.id}`, "info");
                 });
             }
         }
@@ -3900,18 +3101,11 @@ function exportToCSV() {
     const isPoleGame = checkIfPoleGame(state.activeGame, state.activeCategory);
     let csvContent = "";
     
-    const isPP4Way = checkIfPickPlace4Way(state.activeGame, state.activeCategory);
     if (isFishingGame) {
         csvContent = "Round,Yellow,Yellow Score,Green,Green Score,Blue,Blue Score,Red,Red Score\n";
         const sorted = [...allScores].sort((a, b) => a.timestamp - b.timestamp);
         sorted.forEach((round, idx) => {
             csvContent += `รอบที่ ${idx + 1},${round.fishYellow || 0},${round.scoreYellow || 0},${round.fishGreen || 0},${round.scoreGreen || 0},${round.fishBlue || 0},${round.scoreBlue || 0},${round.fishRed || 0},${round.scoreRed || 0}\n`;
-        });
-    } else if (isPP4Way) {
-        csvContent = "Round,Yellow,Yellow Weight,Yellow Result,Green,Green Weight,Green Result,Blue,Blue Weight,Blue Result,Red,Red Weight,Red Result\n";
-        const sorted = [...allScores].sort((a, b) => a.timestamp - b.timestamp);
-        sorted.forEach((round, idx) => {
-            csvContent += `รอบที่ ${idx + 1},${round.nameYellow},${round.weightYellow},${round.resultYellow === 'win' ? 'ชนะ' : 'แพ้'},${round.nameGreen},${round.weightGreen},${round.resultGreen === 'win' ? 'ชนะ' : 'แพ้'},${round.nameBlue},${round.weightBlue},${round.resultBlue === 'win' ? 'ชนะ' : 'แพ้'},${round.nameRed},${round.weightRed},${round.resultRed === 'win' ? 'ชนะ' : 'แพ้'}\n`;
         });
     } else if (isPoleGame) {
         csvContent = "Match,Team A,Players A,Score A,Team B,Players B,Score B,Winner\n";
@@ -4115,7 +3309,7 @@ function syncClearAllToGoogleSheet() {
 }
 
 // Calculate accumulated scores for the colors across Game 1-4
-function calculateColorTotals() {
+function calculateColorTotals(includeFake = true) {
     const totals = {
         '#00f0ff': 0, // น้ำเงิน
         '#ff4b5c': 0, // แดง
@@ -4134,7 +3328,7 @@ function calculateColorTotals() {
             });
         } else {
             gameScores.forEach(player => {
-                if (player.isFishing || player.isPP4Way) {
+                if (player.isFishing) {
                     totals['#00f0ff'] += player.scoreBlue || 0;
                     totals['#ff4b5c'] += player.scoreRed || 0;
                     totals['#ffd600'] += player.scoreYellow || 0;
@@ -4144,6 +3338,14 @@ function calculateColorTotals() {
                 }
             });
         }
+    }
+    
+    if (includeFake && state.fakeScores) {
+        Object.keys(state.fakeScores).forEach(color => {
+            if (totals[color] !== undefined) {
+                totals[color] += state.fakeScores[color] || 0;
+            }
+        });
     }
     
     return totals;
@@ -4181,7 +3383,7 @@ function renderSummaryChart() {
         const column = document.createElement('div');
         column.className = 'summary-chart-column';
         column.innerHTML = `
-            <div class="summary-score-value" style="color: ${color.hex};">${formatNumber(color.score)}</div>
+            <div class="summary-score-value" style="color: ${color.hex};">0</div>
             <div class="summary-bar-track-vertical">
                 <div class="summary-bar-fill-vertical" style="height: 0%; background-color: ${color.hex};"></div>
             </div>
@@ -4193,12 +3395,47 @@ function renderSummaryChart() {
         
         DOM.summaryChartContainer.appendChild(column);
         
-        // Trigger height transition animation
+        // Trigger height transition and number count-up animation
         setTimeout(() => {
             const fill = column.querySelector('.summary-bar-fill-vertical');
-            if (fill) fill.style.height = `${percentage}%`;
+            if (fill) {
+                fill.style.transition = 'height 3s cubic-bezier(0.15, 0.85, 0.3, 1)';
+                fill.style.height = `${percentage}%`;
+            }
+            
+            const valEl = column.querySelector('.summary-score-value');
+            if (valEl && color.score > 0) {
+                animateNumber(valEl, 0, color.score, 3000);
+            } else if (valEl) {
+                valEl.textContent = '0';
+            }
         }, 50);
     });
+}
+
+// Helper function to animate number counting up
+function animateNumber(element, start, end, duration) {
+    let startTime = null;
+    
+    function update(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Cubic ease out curve: matches the bar rising transition beautifully
+        const easeProgress = 1 - Math.pow(1 - progress, 3);
+        const current = Math.floor(start + (end - start) * easeProgress);
+        
+        element.textContent = formatNumber(current);
+        
+        if (progress < 1) {
+            requestAnimationFrame(update);
+        } else {
+            element.textContent = formatNumber(end);
+        }
+    }
+    
+    requestAnimationFrame(update);
 }
 
 // Fullscreen Presentation Mode Toggle
@@ -4274,6 +3511,12 @@ const CATEGORY_NAMES = {
 function selectCategory(categoryKey) {
     state.activeCategory = categoryKey;
     
+    // Toggle Maesi tab visibility
+    const maesiTab = document.getElementById('tab-game-maesi');
+    if (maesiTab) {
+        maesiTab.style.display = categoryKey === 'sunday_small' ? 'flex' : 'none';
+    }
+
     updateColorMode();
     // Load scores for this category
     loadData();
@@ -4296,6 +3539,12 @@ function selectCategory(categoryKey) {
 function showPortal() {
     state.activeCategory = null;
     
+    // Toggle Maesi tab visibility
+    const maesiTab = document.getElementById('tab-game-maesi');
+    if (maesiTab) {
+        maesiTab.style.display = 'none';
+    }
+
     // Show/Hide Containers
     DOM.appContainer.style.display = 'none';
     DOM.portalContainer.style.display = 'flex';
@@ -4315,4 +3564,147 @@ function updateColorMode() {
         .forEach(btn => {
             btn.style.display = isSaturday ? 'none' : '';
         });
+}
+
+function renderAdminScoresTable() {
+    const tableBody = document.querySelector('#admin-scores-table tbody');
+    if (!tableBody) return;
+    
+    tableBody.innerHTML = '';
+    
+    const hexToName = {
+        '#00f0ff': 'น้ำเงิน',
+        '#ff4b5c': 'แดง',
+        '#ffd600': 'เหลือง',
+        '#00ff66': 'เขียว'
+    };
+    
+    const activeHexes = state.activeCategory === 'saturday'
+        ? ['#00f0ff', '#ff4b5c']
+        : ['#00f0ff', '#ff4b5c', '#ffd600', '#00ff66'];
+        
+    const realTotals = calculateColorTotals(false);
+    const displayTotals = calculateColorTotals(true);
+    
+    activeHexes.forEach(hex => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid var(--border-color)';
+        
+        const name = hexToName[hex] || hex;
+        const real = realTotals[hex] || 0;
+        const fake = state.fakeScores[hex] || 0;
+        const total = displayTotals[hex] || 0;
+        
+        const fakeText = fake > 0 ? `+${fake}` : (fake < 0 ? `${fake}` : '0');
+        const fakeColor = fake > 0 ? '#00ff66' : (fake < 0 ? '#ff4b5c' : 'var(--text-secondary)');
+        
+        tr.innerHTML = `
+            <td style="padding: 0.6rem 0.8rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; color: #fff;">
+                <span class="color-dot-small" style="background-color: ${hex}; box-shadow: 0 0 6px ${hex}a0;"></span>
+                ทีมสี${name}
+            </td>
+            <td style="padding: 0.6rem 0.8rem; text-align: right; font-weight: 600; color: #fff;">${formatNumber(real)}</td>
+            <td style="padding: 0.6rem 0.8rem; text-align: right; color: ${fakeColor}; font-weight: bold;">${fakeText}</td>
+            <td style="padding: 0.6rem 0.8rem; text-align: right; font-weight: 700; color: ${hex};">${formatNumber(total)}</td>
+            <td style="padding: 0.6rem 0.8rem; text-align: center;">
+                <button type="button" class="icon-btn btn-delete admin-delete-fake-btn" data-hex="${hex}" title="ลบคะแนนหลอก" style="margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </button>
+            </td>
+        `;
+        
+        // Add delete listener
+        tr.querySelector('.admin-delete-fake-btn').addEventListener('click', () => {
+            state.fakeScores[hex] = 0;
+            saveData();
+            renderAdminScoresTable();
+            renderSummaryChart();
+            showToast(`ลบคะแนนหลอกของทีมสี${name}แล้ว`, "success");
+        });
+        
+        tableBody.appendChild(tr);
+    });
+}
+
+function renderMaesiPanel() {
+    const grid = document.getElementById('maesi-grid-container');
+    if (!grid) return;
+    
+    grid.innerHTML = '';
+    
+    // We only support sunday_small for now (as requested by user)
+    if (state.activeCategory !== 'sunday_small') {
+        grid.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;"><p style="font-weight: 500; font-size: 1.1rem;">ระบบเช็คชื่อแม่สีเปิดใช้งานสำหรับหมวดหมู่วันอาทิตย์ เด็กเล็ก เท่านั้น</p></div>';
+        return;
+    }
+    
+    const colors = [
+        { name: 'สีน้ำเงิน (ฟ้า)', hex: '#00f0ff', players: COLOR_SUGGESTIONS['sunday_small']['#00f0ff'] },
+        { name: 'สีแดง', hex: '#ff4b5c', players: COLOR_SUGGESTIONS['sunday_small']['#ff4b5c'] },
+        { name: 'สีเหลือง', hex: '#ffd600', players: COLOR_SUGGESTIONS['sunday_small']['#ffd600'] },
+        { name: 'สีเขียว', hex: '#00ff66', players: COLOR_SUGGESTIONS['sunday_small']['#00ff66'] }
+    ];
+    
+    colors.forEach(color => {
+        const card = document.createElement('div');
+        card.className = 'maesi-card';
+        card.style.borderTop = `4px solid ${color.hex}`;
+        
+        let playerRowsHTML = '';
+        if (color.players && color.players.length > 0) {
+            color.players.forEach(player => {
+                const checked1 = (state.maesiChecklist && state.maesiChecklist[player] && state.maesiChecklist[player]["1"]) ? 'checked' : '';
+                const checked2 = (state.maesiChecklist && state.maesiChecklist[player] && state.maesiChecklist[player]["2"]) ? 'checked' : '';
+                const checked3 = (state.maesiChecklist && state.maesiChecklist[player] && state.maesiChecklist[player]["3"]) ? 'checked' : '';
+                const checked4 = (state.maesiChecklist && state.maesiChecklist[player] && state.maesiChecklist[player]["4"]) ? 'checked' : '';
+                
+                playerRowsHTML += `
+                    <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                        <td style="padding: 0.6rem 0.25rem; font-weight: 600; color: #fff; white-space: nowrap;">น้อง${player}</td>
+                        <td style="padding: 0.6rem 0.25rem; text-align: center;">
+                            <input type="checkbox" class="maesi-checkbox-input" data-player="${player}" data-game="1" ${checked1}>
+                        </td>
+                        <td style="padding: 0.6rem 0.25rem; text-align: center;">
+                            <input type="checkbox" class="maesi-checkbox-input" data-player="${player}" data-game="2" ${checked2}>
+                        </td>
+                        <td style="padding: 0.6rem 0.25rem; text-align: center;">
+                            <input type="checkbox" class="maesi-checkbox-input" data-player="${player}" data-game="3" ${checked3}>
+                        </td>
+                        <td style="padding: 0.6rem 0.25rem; text-align: center;">
+                            <input type="checkbox" class="maesi-checkbox-input" data-player="${player}" data-game="4" ${checked4}>
+                        </td>
+                    </tr>
+                `;
+            });
+        } else {
+            playerRowsHTML = `<tr><td colspan="5" style="padding: 1rem; text-align: center; color: var(--text-muted);">ไม่มีรายชื่อผู้เล่น</td></tr>`;
+        }
+        
+        card.innerHTML = `
+            <h3 style="font-size: 1.15rem; font-weight: 800; color: ${color.hex}; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span class="color-dot-small" style="background-color: ${color.hex}; box-shadow: 0 0 8px ${color.hex}a0;"></span>
+                ทีม${color.name}
+            </h3>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-secondary);">
+                            <th style="padding: 0.5rem 0.25rem;">ชื่อน้อง</th>
+                            <th style="padding: 0.5rem 0.25rem; text-align: center; font-size: 1.1rem;" title="Bowling">🎳</th>
+                            <th style="padding: 0.5rem 0.25rem; text-align: center; font-size: 1.1rem;" title="Hockey">🏒</th>
+                            <th style="padding: 0.5rem 0.25rem; text-align: center; font-size: 1.1rem;" title="Fishing">🐟</th>
+                            <th style="padding: 0.5rem 0.25rem; text-align: center; font-size: 1.1rem;" title="Pole Fighting">🤺</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${playerRowsHTML}
+                    </tbody>
+                </table>
+            </div>
+        `;
+        
+        grid.appendChild(card);
+    });
 }
