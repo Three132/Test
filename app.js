@@ -1515,58 +1515,60 @@ function updatePoleFormUI() {
         btn.classList.toggle('selected', btn.getAttribute('data-hex') === state.pole.teamA));
     document.querySelectorAll('#pole-team-b-selector .color-name-btn').forEach(btn =>
         btn.classList.toggle('selected', btn.getAttribute('data-hex') === state.pole.teamB));
-
+    
+    // Update team labels with color names
     const teamAColorName = HEX_TO_NAME[state.pole.teamA] || 'ที่ 1';
     const teamBColorName = HEX_TO_NAME[state.pole.teamB] || 'ที่ 2';
+    
+    // Update team color labels
+    const poleTeamALabel = document.querySelector('#pole-form-fields .form-group:nth-child(1) > label');
+    const poleTeamBLabel = document.querySelector('#pole-form-fields .form-group:nth-child(3) > label');
+    if (poleTeamALabel) poleTeamALabel.textContent = `ทีมสี${teamAColorName}`;
+    if (poleTeamBLabel) poleTeamBLabel.textContent = `ทีมสี${teamBColorName}`;
+    
+    const winABtn = document.getElementById('pole-winner-a-btn');
+    const winBBtn = document.getElementById('pole-winner-b-btn');
+    
+    if (winABtn && winBBtn) {
+        winABtn.textContent = `ทีมสี${HEX_TO_NAME[state.pole.teamA]} ชนะ`;
+        winBBtn.textContent = `ทีมสี${HEX_TO_NAME[state.pole.teamB]} ชนะ`;
+        const isWinA = state.pole.winner === 'A';
+        winABtn.classList.toggle('active', isWinA);
+        winBBtn.classList.toggle('active', !isWinA);
+        winABtn.style.borderColor = isWinA ? state.pole.teamA : '';
+        winABtn.style.color = isWinA ? state.pole.teamA : '';
+        winABtn.style.boxShadow = isWinA ? `0 0 12px ${state.pole.teamA}80` : '';
+        winABtn.style.background = isWinA ? `${state.pole.teamA}15` : '';
+        winBBtn.style.borderColor = !isWinA ? state.pole.teamB : '';
+        winBBtn.style.color = !isWinA ? state.pole.teamB : '';
+        winBBtn.style.boxShadow = !isWinA ? `0 0 12px ${state.pole.teamB}80` : '';
+        winBBtn.style.background = !isWinA ? `${state.pole.teamB}15` : '';
+    }
 
-    ...
-
+    // Toggle 1v1 vs 2v2: Pole Fighting วันเสาร์ = 1v1, ที่เหลือ (วันอาทิตย์ + Hockey อาทิตย์ + Pick and Place เสาร์) = 2v2
     const gameName = getActiveGameName(state.activeGame);
-
-    const isPole1v1 =
-        state.activeCategory === 'saturday' &&
-        gameName === 'Pole Fighting';
-
-    // ⭐ เพิ่มบรรทัดนี้
-    const isBowling =
-        gameName === 'Bowling' &&
-        state.activeCategory === 'sunday_small';
-
+    const isPole1v1 = state.activeCategory === 'saturday' && gameName === 'Pole Fighting';
     const wrapperA2 = document.getElementById('pole-player-a2-wrapper');
     const wrapperB2 = document.getElementById('pole-player-b2-wrapper');
     const gridA = document.getElementById('pole-team-a-players-grid');
     const gridB = document.getElementById('pole-team-b-players-grid');
     const labelA1 = document.getElementById('pole-label-a1');
     const labelB1 = document.getElementById('pole-label-b1');
-
-    // ⭐ แก้ if ตรงนี้
-    if (isPole1v1 || isBowling) {
-
+    
+    if (isPole1v1) {
         if (wrapperA2) wrapperA2.style.display = 'none';
         if (wrapperB2) wrapperB2.style.display = 'none';
-
         if (gridA) gridA.style.gridTemplateColumns = '1fr';
         if (gridB) gridB.style.gridTemplateColumns = '1fr';
-
-        if (labelA1)
-            labelA1.textContent = `ผู้เล่น (ทีมสี${teamAColorName})`;
-
-        if (labelB1)
-            labelB1.textContent = `ผู้เล่น (ทีมสี${teamBColorName})`;
-
+        if (labelA1) labelA1.textContent = `ผู้เล่น (ทีมสี${teamAColorName})`;
+        if (labelB1) labelB1.textContent = `ผู้เล่น (ทีมสี${teamBColorName})`;
     } else {
-
         if (wrapperA2) wrapperA2.style.display = 'block';
         if (wrapperB2) wrapperB2.style.display = 'block';
-
         if (gridA) gridA.style.gridTemplateColumns = '1fr 1fr';
         if (gridB) gridB.style.gridTemplateColumns = '1fr 1fr';
-
-        if (labelA1)
-            labelA1.textContent = `ผู้เล่น 1 (ทีมสี${teamAColorName})`;
-
-        if (labelB1)
-            labelB1.textContent = `ผู้เล่น 1 (ทีมสี${teamBColorName})`;
+        if (labelA1) labelA1.textContent = `ผู้เล่น 1 (ทีมสี${teamAColorName})`;
+        if (labelB1) labelB1.textContent = `ผู้เล่น 1 (ทีมสี${teamBColorName})`;
     }
 
     updatePolePlayerDropdown('A');
@@ -1664,344 +1666,344 @@ const SUNDAY_SMALL_MATCHES = {
             "id": 1,
             "round": 1,
             "type": "individual",
-            "player": "อินเวสต์",
-            "color": "#00f0ff"
+            "player": "ก้าว",
+            "color": "#ffd600"
         },
         {
             "id": 2,
             "round": 1,
             "type": "individual",
-            "player": "ยูตะ",
-            "color": "#ff4b5c"
+            "player": "เซนต์",
+            "color": "#ffd600"
         },
         {
             "id": 3,
             "round": 1,
             "type": "individual",
-            "player": "อุ่นใจ",
-            "color": "#00f0ff"
+            "player": "ดีเซล",
+            "color": "#ffd600"
         },
         {
             "id": 4,
             "round": 1,
             "type": "individual",
-            "player": "เชอริล",
-            "color": "#00f0ff"
+            "player": "ใบบุญ",
+            "color": "#ffd600"
         },
         {
             "id": 5,
-            "round": 2,
-            "type": "individual",
-            "player": "เชฟ",
-            "color": "#00ff66"
-        },
-        {
-            "id": 6,
-            "round": 2,
-            "type": "individual",
-            "player": "กราฟิก",
-            "color": "#00f0ff"
-        },
-        {
-            "id": 7,
             "round": 2,
             "type": "individual",
             "player": "จินดา",
             "color": "#ffd600"
         },
         {
+            "id": 6,
+            "round": 2,
+            "type": "individual",
+            "player": "Cani",
+            "color": "#ffd600"
+        },
+        {
+            "id": 7,
+            "round": 2,
+            "type": "individual",
+            "player": "ภาคิน",
+            "color": "#ffd600"
+        },
+        {
             "id": 8,
             "round": 2,
             "type": "individual",
-            "player": "นาคินทร์",
-            "color": "#00ff66"
+            "player": "ไบรท์",
+            "color": "#ffd600"
         },
         {
             "id": 9,
             "round": 3,
             "type": "individual",
-            "player": "ดีเซล",
-            "color": "#ffd600"
+            "player": "เลโก้",
+            "color": "#00ff66"
         },
         {
             "id": 10,
             "round": 3,
             "type": "individual",
-            "player": "ท้องฟ้า",
-            "color": "#ff4b5c"
+            "player": "อาเหยียน",
+            "color": "#00ff66"
         },
         {
             "id": 11,
             "round": 3,
             "type": "individual",
-            "player": "พายุ",
-            "color": "#ff4b5c"
+            "player": "เชฟ",
+            "color": "#00ff66"
         },
         {
             "id": 12,
             "round": 3,
             "type": "individual",
-            "player": "Glad",
+            "player": "ขอบคุณ",
             "color": "#00ff66"
         },
         {
             "id": 13,
             "round": 4,
             "type": "individual",
-            "player": "เซนต์",
-            "color": "#ffd600"
+            "player": "ฟรานส์",
+            "color": "#00ff66"
         },
         {
             "id": 14,
             "round": 4,
             "type": "individual",
-            "player": "ไทเป",
-            "color": "#00f0ff"
+            "player": "มีตังค์",
+            "color": "#00ff66"
         },
         {
             "id": 15,
             "round": 4,
             "type": "individual",
-            "player": "คิน",
-            "color": "#ffd600"
+            "player": "เชอริล",
+            "color": "#00f0ff"
         },
         {
             "id": 16,
             "round": 4,
             "type": "individual",
-            "player": "ตะวัน",
-            "color": "#ff4b5c"
-        },
-        {
-            "id": 17,
-            "round": 5,
-            "type": "individual",
-            "player": "ณคุณ",
+            "player": "เท็นเท็น",
             "color": "#00f0ff"
         },
         {
-            "id": 18,
-            "round": 5,
-            "type": "individual",
-            "player": "อาเหยียน",
-            "color": "#00ff66"
-        },
-        {
-            "id": 19,
+            "id": 17,
             "round": 5,
             "type": "individual",
             "player": "นาคิน",
             "color": "#ff4b5c"
         },
         {
-            "id": 20,
+            "id": 18,
             "round": 5,
-            "type": "individual",
-            "player": "ก้าว",
-            "color": "#ffd600"
-        },
-        {
-            "id": 21,
-            "round": 6,
-            "type": "individual",
-            "player": "ใบบุญ",
-            "color": "#ffd600"
-        },
-        {
-            "id": 22,
-            "round": 6,
-            "type": "individual",
-            "player": "อิงอิง",
-            "color": "#ffd600"
-        },
-        {
-            "id": 23,
-            "round": 6,
             "type": "individual",
             "player": "ปุณณ์ W",
             "color": "#00ff66"
         },
         {
-            "id": 24,
-            "round": 7,
+            "id": 19,
+            "round": 5,
             "type": "individual",
-            "player": "ปราบ",
-            "color": "#00f0ff"
-        },
-        {
-            "id": 25,
-            "round": 7,
-            "type": "individual",
-            "player": "เลโก้",
+            "player": "นาคินทร์",
             "color": "#00ff66"
         },
         {
-            "id": 26,
+            "id": 20,
+            "round": 5,
+            "type": "individual",
+            "player": "ไทเป",
+            "color": "#00f0ff"
+        },
+        {
+            "id": 21,
+            "round": 6,
+            "type": "individual",
+            "player": "ภูผา",
+            "color": "#ff4b5c"
+        },
+        {
+            "id": 22,
+            "round": 6,
+            "type": "individual",
+            "player": "กราฟิก",
+            "color": "#00f0ff"
+        },
+        {
+            "id": 23,
+            "round": 6,
+            "type": "individual",
+            "player": "พายุ",
+            "color": "#ff4b5c"
+        },
+        {
+            "id": 24,
+            "round": 6,
+            "type": "individual",
+            "player": "อาร์ชี่",
+            "color": "#ff4b5c"
+        },
+        {
+            "id": 25,
             "round": 7,
             "type": "individual",
             "player": "ลอฟต์",
             "color": "#ff4b5c"
         },
         {
-            "id": 27,
-            "round": 8,
+            "id": 26,
+            "round": 7,
             "type": "individual",
-            "player": "อาร์ชี่",
+            "player": "อคิณ",
             "color": "#ff4b5c"
+        },
+        {
+            "id": 27,
+            "round": 7,
+            "type": "individual",
+            "player": "อิงอิง",
+            "color": "#ffd600"
         },
         {
             "id": 28,
-            "round": 8,
+            "round": 7,
             "type": "individual",
-            "player": "ภูผา",
-            "color": "#ff4b5c"
+            "player": "ฟลินน์",
+            "color": "#00ff66"
         },
         {
             "id": 29,
+            "round": 8,
+            "type": "individual",
+            "player": "ณคุณ",
+            "color": "#00f0ff"
+        },
+        {
+            "id": 30,
+            "round": 8,
+            "type": "individual",
+            "player": "ตะวัน",
+            "color": "#ff4b5c"
+        },
+        {
+            "id": 31,
+            "round": 8,
+            "type": "individual",
+            "player": "คิน",
+            "color": "#ffd600"
+        },
+        {
+            "id": 32,
             "round": 8,
             "type": "individual",
             "player": "ปุงปัง",
             "color": "#00ff66"
         },
         {
-            "id": 30,
-            "round": 9,
-            "type": "individual",
-            "player": "อะตอมW",
-            "color": "#00f0ff"
-        },
-        {
-            "id": 31,
-            "round": 9,
-            "type": "individual",
-            "player": "ภาคิน",
-            "color": "#ffd600"
-        },
-        {
-            "id": 32,
-            "round": 9,
-            "type": "individual",
-            "player": "ขอบคุณ",
-            "color": "#00ff66"
-        },
-        {
             "id": 33,
             "round": 9,
             "type": "individual",
-            "player": "ฟีนิกซ์",
-            "color": "#ff4b5c"
-        },
-        {
-            "id": 34,
-            "round": 10,
-            "type": "individual",
-            "player": "ฟลินน์",
+            "player": "Glad",
             "color": "#00ff66"
         },
         {
+            "id": 34,
+            "round": 9,
+            "type": "individual",
+            "player": "ท้องฟ้า",
+            "color": "#ff4b5c"
+        },
+        {
             "id": 35,
+            "round": 9,
+            "type": "individual",
+            "player": "พรีมพรีม",
+            "color": "#ffd600"
+        },
+        {
+            "id": 36,
+            "round": 9,
+            "type": "individual",
+            "player": "ลูกแก้ว",
+            "color": "#ffd600"
+        },
+        {
+            "id": 37,
+            "round": 10,
+            "type": "individual",
+            "player": "อุ่นใจ",
+            "color": "#00f0ff"
+        },
+        {
+            "id": 38,
             "round": 10,
             "type": "individual",
             "player": "เอ็ดก้า",
             "color": "#00f0ff"
         },
         {
-            "id": 36,
+            "id": 39,
             "round": 10,
             "type": "individual",
-            "player": "TinTin",
+            "player": "ปุณณ์",
             "color": "#ff4b5c"
         },
         {
-            "id": 37,
+            "id": 40,
             "round": 10,
             "type": "individual",
-            "player": "พรีมพรีม",
-            "color": "#ffd600"
-        },
-        {
-            "id": 38,
-            "round": 11,
-            "type": "individual",
-            "player": "มีตังค์",
+            "player": "ภัฅ",
             "color": "#00ff66"
         },
         {
-            "id": 39,
+            "id": 41,
             "round": 11,
             "type": "individual",
             "player": "ภูเขา",
             "color": "#00f0ff"
         },
         {
-            "id": 40,
-            "round": 11,
-            "type": "individual",
-            "player": "Cani",
-            "color": "#ffd600"
-        },
-        {
-            "id": 41,
-            "round": 11,
-            "type": "individual",
-            "player": "ปุณณ์",
-            "color": "#ff4b5c"
-        },
-        {
             "id": 42,
-            "round": 12,
-            "type": "individual",
-            "player": "อคิณ",
-            "color": "#ff4b5c"
-        },
-        {
-            "id": 43,
-            "round": 12,
-            "type": "individual",
-            "player": "ลูกแก้ว",
-            "color": "#ffd600"
-        },
-        {
-            "id": 44,
-            "round": 12,
-            "type": "individual",
-            "player": "ภัฅ",
-            "color": "#00ff66"
-        },
-        {
-            "id": 45,
-            "round": 12,
+            "round": 11,
             "type": "individual",
             "player": "โปรดปราน",
             "color": "#00f0ff"
         },
         {
-            "id": 46,
-            "round": 13,
+            "id": 43,
+            "round": 11,
             "type": "individual",
-            "player": "เท็นเท็น",
+            "player": "อะตอมW",
             "color": "#00f0ff"
+        },
+        {
+            "id": 44,
+            "round": 12,
+            "type": "individual",
+            "player": "TinTin",
+            "color": "#ff4b5c"
+        },
+        {
+            "id": 45,
+            "round": 12,
+            "type": "individual",
+            "player": "ฟีนิกซ์",
+            "color": "#ff4b5c"
+        },
+        {
+            "id": 46,
+            "round": 12,
+            "type": "individual",
+            "player": "แมนต้า",
+            "color": "#ff4b5c"
         },
         {
             "id": 47,
             "round": 13,
             "type": "individual",
-            "player": "ฟรานส์",
-            "color": "#00ff66"
+            "player": "ปราบ",
+            "color": "#00f0ff"
         },
         {
             "id": 48,
             "round": 13,
             "type": "individual",
-            "player": "ไบรท์",
-            "color": "#ffd600"
+            "player": "ยูตะ",
+            "color": "#ff4b5c"
         },
         {
             "id": 49,
             "round": 13,
             "type": "individual",
-            "player": "แมนต้า",
-            "color": "#ff4b5c"
+            "player": "อินเวสต์",
+            "color": "#00f0ff"
         }
     ],
     "2": [
@@ -2009,23 +2011,23 @@ const SUNDAY_SMALL_MATCHES = {
             "id": 1,
             "round": 1,
             "type": "pole",
-            "teamA": "#ffd600",
+            "teamA": "#00f0ff",
             "teamB": "#ff4b5c",
-            "playerA1": "เซนต์",
-            "playerA2": "อิงอิง",
-            "playerB1": "ท้องฟ้า",
-            "playerB2": "ลอฟต์"
+            "playerA1": "อะตอมW",
+            "playerA2": "เอ็ดก้า",
+            "playerB1": "แมนต้า",
+            "playerB2": "ปุณณ์"
         },
         {
             "id": 2,
             "round": 2,
             "type": "pole",
-            "teamA": "#00ff66",
-            "teamB": "#00f0ff",
-            "playerA1": "อาเหยียน",
-            "playerA2": "ปุณณ์ W",
-            "playerB1": "ณคุณ",
-            "playerB2": "อินเวสต์"
+            "teamA": "#00f0ff",
+            "teamB": "#ff4b5c",
+            "playerA1": "ภูเขา",
+            "playerA2": "โปรดปราน",
+            "playerB1": "TinTin",
+            "playerB2": "ฟีนิกซ์"
         },
         {
             "id": 3,
@@ -2033,65 +2035,65 @@ const SUNDAY_SMALL_MATCHES = {
             "type": "pole",
             "teamA": "#00f0ff",
             "teamB": "#ff4b5c",
-            "playerA1": "เชอริล",
-            "playerA2": "ปราบ",
-            "playerB1": "ภูผา",
-            "playerB2": "นาคิน"
+            "playerA1": "กราฟิก",
+            "playerA2": "อินเวสต์",
+            "playerB1": "อคิณ",
+            "playerB2": "พายุ"
         },
         {
             "id": 4,
             "round": 4,
             "type": "pole",
-            "teamA": "#ff4b5c",
-            "teamB": "#00ff66",
-            "playerA1": "อาร์ชี่",
-            "playerA2": "พายุ",
-            "playerB1": "นาคินทร์",
-            "playerB2": "ปุงปัง"
+            "teamA": "#ffd600",
+            "teamB": "#00f0ff",
+            "playerA1": "ลูกแก้ว",
+            "playerA2": "ไบรท์",
+            "playerB1": "ปราบ",
+            "playerB2": "ณคุณ"
         },
         {
             "id": 5,
             "round": 5,
             "type": "pole",
-            "teamA": "#ff4b5c",
+            "teamA": "#ffd600",
             "teamB": "#00ff66",
-            "playerA1": "ตะวัน",
-            "playerA2": "ลอฟต์",
-            "playerB1": "Glad",
-            "playerB2": "เชฟ"
+            "playerA1": "ดีเซล",
+            "playerA2": "ใบบุญ",
+            "playerB1": "ปุงปัง",
+            "playerB2": "อาเหยียน"
         },
         {
             "id": 6,
             "round": 6,
             "type": "pole",
-            "teamA": "#00f0ff",
-            "teamB": "#ffd600",
-            "playerA1": "ไทเป",
-            "playerA2": "กราฟิก",
-            "playerB1": "คิน",
-            "playerB2": "ดีเซล"
+            "teamA": "#ffd600",
+            "teamB": "#00f0ff",
+            "playerA1": "พรีมพรีม",
+            "playerA2": "ภาคิน",
+            "playerB1": "อุ่นใจ",
+            "playerB2": "เชอริล"
         },
         {
             "id": 7,
             "round": 7,
             "type": "pole",
-            "teamA": "#00f0ff",
+            "teamA": "#ffd600",
             "teamB": "#00ff66",
-            "playerA1": "อุ่นใจ",
-            "playerA2": "ณคุณ",
+            "playerA1": "ก้าว",
+            "playerA2": "เซนต์",
             "playerB1": "ปุณณ์ W",
-            "playerB2": "นาคินทร์"
+            "playerB2": "เลโก้"
         },
         {
             "id": 8,
             "round": 8,
             "type": "pole",
-            "teamA": "#ffd600",
-            "teamB": "#00f0ff",
-            "playerA1": "ใบบุญ",
-            "playerA2": "จินดา",
-            "playerB1": "อินเวสต์",
-            "playerB2": "อุ่นใจ"
+            "teamA": "#00ff66",
+            "teamB": "#ff4b5c",
+            "playerA1": "ภัฅ",
+            "playerA2": "มีตังค์",
+            "playerB1": "ยูตะ",
+            "playerB2": "ภูผา"
         },
         {
             "id": 9,
@@ -2099,54 +2101,54 @@ const SUNDAY_SMALL_MATCHES = {
             "type": "pole",
             "teamA": "#ffd600",
             "teamB": "#00f0ff",
-            "playerA1": "ลูกแก้ว",
-            "playerA2": "ไบรท์",
-            "playerB1": "เท็นเท็น",
-            "playerB2": "เอ็ดก้า"
+            "playerA1": "อิงอิง",
+            "playerA2": "Cani",
+            "playerB1": "กราฟิก",
+            "playerB2": "อินเวสต์"
         },
         {
             "id": 10,
             "round": 10,
             "type": "pole",
-            "teamA": "#ffd600",
+            "teamA": "#00f0ff",
             "teamB": "#ff4b5c",
-            "playerA1": "ภาคิน",
-            "playerA2": "ไบรท์",
-            "playerB1": "ฟีนิกซ์",
-            "playerB2": "แมนต้า"
+            "playerA1": "ไทเป",
+            "playerA2": "เท็นเท็น",
+            "playerB1": "ตะวัน",
+            "playerB2": "นาคิน"
         },
         {
             "id": 11,
             "round": 11,
             "type": "pole",
-            "teamA": "#00f0ff",
-            "teamB": "#ffd600",
-            "playerA1": "โปรดปราน",
-            "playerA2": "เอ็ดก้า",
-            "playerB1": "พรีมพรีม",
-            "playerB2": "ภาคิน"
+            "teamA": "#00ff66",
+            "teamB": "#ff4b5c",
+            "playerA1": "นาคินทร์",
+            "playerA2": "ขอบคุณ",
+            "playerB1": "พายุ",
+            "playerB2": "ท้องฟ้า"
         },
         {
             "id": 12,
             "round": 12,
             "type": "pole",
-            "teamA": "#ff4b5c",
-            "teamB": "#ffd600",
-            "playerA1": "ปุณณ์",
-            "playerA2": "TinTin",
-            "playerB1": "Cani",
-            "playerB2": "พรีมพรีม"
+            "teamA": "#00ff66",
+            "teamB": "#ff4b5c",
+            "playerA1": "ฟลินน์",
+            "playerA2": "ฟรานส์",
+            "playerB1": "อาร์ชี่",
+            "playerB2": "ลอฟต์"
         },
         {
             "id": 13,
             "round": 13,
             "type": "pole",
-            "teamA": "#ff4b5c",
+            "teamA": "#ffd600",
             "teamB": "#00ff66",
-            "playerA1": "อคิณ",
-            "playerA2": "ปุณณ์",
-            "playerB1": "มีตังค์",
-            "playerB2": "ภัฅ"
+            "playerA1": "จินดา",
+            "playerA2": "คิน",
+            "playerB1": "เชฟ",
+            "playerB2": "Glad"
         }
     ],
     "3": [
@@ -2154,99 +2156,99 @@ const SUNDAY_SMALL_MATCHES = {
             "id": 1,
             "round": 1,
             "type": "fishing",
-            "playerYellow": "ใบบุญ",
-            "playerGreen": "ปุณณ์ W",
-            "playerBlue": "ปราบ",
+            "playerYellow": "อิงอิง",
+            "playerGreen": "นาคินทร์",
+            "playerBlue": "ไทเป",
             "playerRed": "ตะวัน"
         },
         {
             "id": 2,
             "round": 2,
             "type": "fishing",
-            "playerYellow": "ก้าว",
+            "playerYellow": "คิน",
             "playerGreen": "Glad",
-            "playerBlue": "ไทเป",
-            "playerRed": "พายุ"
+            "playerBlue": "ณคุณ",
+            "playerRed": "ภูผา"
         },
         {
             "id": 3,
             "round": 3,
             "type": "fishing",
-            "playerYellow": "คิน",
-            "playerGreen": "เชฟ",
-            "playerBlue": "ณคุณ",
+            "playerYellow": "ดีเซล",
+            "playerGreen": "ปุงปัง",
+            "playerBlue": "อุ่นใจ",
             "playerRed": "อาร์ชี่"
         },
         {
             "id": 4,
             "round": 4,
             "type": "fishing",
-            "playerYellow": "ดีเซล",
-            "playerGreen": "อาเหยียน",
-            "playerBlue": "เชอริล",
-            "playerRed": "ลอฟต์"
+            "playerYellow": "พรีมพรีม",
+            "playerGreen": "ฟลินน์",
+            "playerBlue": "ภูเขา",
+            "playerRed": "TinTin"
         },
         {
             "id": 5,
             "round": 5,
             "type": "fishing",
-            "playerYellow": "จินดา",
+            "playerYellow": "เซนต์",
             "playerGreen": "เลโก้",
-            "playerBlue": "กราฟิก",
-            "playerRed": "ยูตะ"
+            "playerBlue": "อินเวสต์",
+            "playerRed": "ท้องฟ้า"
         },
         {
             "id": 6,
             "round": 6,
             "type": "fishing",
-            "playerYellow": "เซนต์",
-            "playerGreen": "นาคินทร์",
-            "playerBlue": "อุ่นใจ",
-            "playerRed": "ท้องฟ้า"
+            "playerYellow": "ลูกแก้ว",
+            "playerGreen": "ภัฅ",
+            "playerBlue": "อะตอมW",
+            "playerRed": "แมนต้า"
         },
         {
             "id": 7,
             "round": 7,
             "type": "fishing",
-            "playerYellow": "อิงอิง",
-            "playerGreen": "ปุงปัง",
-            "playerBlue": "อินเวสต์",
-            "playerRed": "ภูผา"
+            "playerYellow": "Cani",
+            "playerGreen": "ขอบคุณ",
+            "playerBlue": "เท็นเท็น",
+            "playerRed": "นาคิน"
         },
         {
             "id": 8,
             "round": 8,
             "type": "fishing",
-            "playerYellow": "ดีเซล",
-            "playerGreen": "อาเหยียน",
-            "playerBlue": "ปราบ",
-            "playerRed": "นาคิน"
+            "playerYellow": "ภาคิน",
+            "playerGreen": "ฟรานส์",
+            "playerBlue": "โปรดปราน",
+            "playerRed": "ฟีนิกซ์"
         },
         {
             "id": 9,
             "round": 9,
             "type": "fishing",
-            "playerYellow": "พรีมพรีม",
-            "playerGreen": "ฟลินน์",
-            "playerBlue": "โปรดปราน",
-            "playerRed": "TinTin"
+            "playerYellow": "ใบบุญ",
+            "playerGreen": "อาเหยียน",
+            "playerBlue": "เชอริล",
+            "playerRed": "ลอฟต์"
         },
         {
             "id": 10,
             "round": 10,
             "type": "fishing",
-            "playerYellow": "Cani",
-            "playerGreen": "มีตังค์",
-            "playerBlue": "ภูเขา",
-            "playerRed": "ปุณณ์"
+            "playerYellow": "จินดา",
+            "playerGreen": "เชฟ",
+            "playerBlue": "ปราบ",
+            "playerRed": "ยูตะ"
         },
         {
             "id": 11,
             "round": 11,
             "type": "fishing",
-            "playerYellow": "ลูกแก้ว",
-            "playerGreen": "ภัฅ",
-            "playerBlue": "อะตอมW",
+            "playerYellow": "ก้าว",
+            "playerGreen": "ปุณณ์ W",
+            "playerBlue": "กราฟิก",
             "playerRed": "อคิณ"
         },
         {
@@ -2254,18 +2256,18 @@ const SUNDAY_SMALL_MATCHES = {
             "round": 12,
             "type": "fishing",
             "playerYellow": "ไบรท์",
-            "playerGreen": "ฟรานส์",
-            "playerBlue": "เท็นเท็น",
-            "playerRed": "แมนต้า"
+            "playerGreen": "มีตังค์",
+            "playerBlue": "เอ็ดก้า",
+            "playerRed": "ปุณณ์"
         },
         {
             "id": 13,
             "round": 13,
             "type": "fishing",
-            "playerYellow": "ภาคิน",
-            "playerGreen": "ขอบคุณ",
-            "playerBlue": "เอ็ดก้า",
-            "playerRed": "ฟีนิกซ์"
+            "playerYellow": "ก้าว",
+            "playerGreen": "ปุณณ์ W",
+            "playerBlue": "กราฟิก",
+            "playerRed": "พายุ"
         }
     ],
     "4": [
@@ -2273,144 +2275,144 @@ const SUNDAY_SMALL_MATCHES = {
             "id": 1,
             "round": 1,
             "type": "pole",
-            "teamA": "#ff4b5c",
-            "teamB": "#00ff66",
-            "playerA1": "อาร์ชี่",
-            "playerA2": "นาคิน",
-            "playerB1": "เลโก้",
-            "playerB2": "ปุงปัง"
+            "teamA": "#00ff66",
+            "teamB": "#00f0ff",
+            "playerA1": "ปุณณ์ W",
+            "playerA2": "ปุงปัง",
+            "playerB1": "กราฟิก",
+            "playerB2": "อุ่นใจ"
         },
         {
             "id": 2,
             "round": 2,
             "type": "pole",
-            "teamA": "#ff4b5c",
+            "teamA": "#ffd600",
             "teamB": "#00ff66",
-            "playerA1": "ภูผา",
-            "playerA2": "ยูตะ",
-            "playerB1": "ปุงปัง",
-            "playerB2": "เลโก้"
+            "playerA1": "พรีมพรีม",
+            "playerA2": "ลูกแก้ว",
+            "playerB1": "ฟลินน์",
+            "playerB2": "ภัฅ"
         },
         {
             "id": 3,
             "round": 3,
             "type": "pole",
             "teamA": "#ffd600",
-            "teamB": "#00f0ff",
-            "playerA1": "ใบบุญ",
-            "playerA2": "ก้าว",
-            "playerB1": "อุ่นใจ",
-            "playerB2": "กราฟิก"
+            "teamB": "#ff4b5c",
+            "playerA1": "เซนต์",
+            "playerA2": "ใบบุญ",
+            "playerB1": "ท้องฟ้า",
+            "playerB2": "ลอฟต์"
         },
         {
             "id": 4,
             "round": 4,
             "type": "pole",
-            "teamA": "#ff4b5c",
-            "teamB": "#ffd600",
-            "playerA1": "ท้องฟ้า",
-            "playerA2": "ภูผา",
-            "playerB1": "อิงอิง",
-            "playerB2": "จินดา"
+            "teamA": "#ffd600",
+            "teamB": "#ff4b5c",
+            "playerA1": "จินดา",
+            "playerA2": "อิงอิง",
+            "playerB1": "ยูตะ",
+            "playerB2": "ตะวัน"
         },
         {
             "id": 5,
             "round": 5,
             "type": "pole",
-            "teamA": "#00f0ff",
-            "teamB": "#ff4b5c",
-            "playerA1": "อินเวสต์",
-            "playerA2": "ไทเป",
-            "playerB1": "พายุ",
-            "playerB2": "อาร์ชี่"
+            "teamA": "#ffd600",
+            "teamB": "#00ff66",
+            "playerA1": "คิน",
+            "playerA2": "Cani",
+            "playerB1": "Glad",
+            "playerB2": "ขอบคุณ"
         },
         {
             "id": 6,
             "round": 6,
             "type": "pole",
-            "teamA": "#ffd600",
-            "teamB": "#00ff66",
-            "playerA1": "ก้าว",
-            "playerA2": "จินดา",
-            "playerB1": "เชฟ",
-            "playerB2": "Glad"
+            "teamA": "#00f0ff",
+            "teamB": "#ff4b5c",
+            "playerA1": "โปรดปราน",
+            "playerA2": "เอ็ดก้า",
+            "playerB1": "ฟีนิกซ์",
+            "playerB2": "ปุณณ์"
         },
         {
             "id": 7,
             "round": 7,
             "type": "pole",
-            "teamA": "#ff4b5c",
+            "teamA": "#00ff66",
             "teamB": "#00f0ff",
-            "playerA1": "ตะวัน",
-            "playerA2": "ยูตะ",
-            "playerB1": "เชอริล",
+            "playerA1": "เชฟ",
+            "playerA2": "นาคินทร์",
+            "playerB1": "ปราบ",
             "playerB2": "ไทเป"
         },
         {
             "id": 8,
             "round": 8,
             "type": "pole",
-            "teamA": "#ffd600",
-            "teamB": "#00f0ff",
-            "playerA1": "คิน",
-            "playerA2": "เซนต์",
-            "playerB1": "ณคุณ",
-            "playerB2": "เชอริล"
+            "teamA": "#00f0ff",
+            "teamB": "#ff4b5c",
+            "playerA1": "ภูเขา",
+            "playerA2": "อะตอมW",
+            "playerB1": "TinTin",
+            "playerB2": "แมนต้า"
         },
         {
             "id": 9,
             "round": 9,
             "type": "pole",
-            "teamA": "#00ff66",
+            "teamA": "#ffd600",
             "teamB": "#ff4b5c",
-            "playerA1": "ภัฅ",
-            "playerA2": "ฟรานส์",
-            "playerB1": "อคิณ",
-            "playerB2": "แมนต้า"
+            "playerA1": "ก้าว",
+            "playerA2": "ดีเซล",
+            "playerB1": "พายุ",
+            "playerB2": "อาร์ชี่"
         },
         {
             "id": 10,
             "round": 10,
             "type": "pole",
-            "teamA": "#00f0ff",
+            "teamA": "#ffd600",
             "teamB": "#00ff66",
-            "playerA1": "เท็นเท็น",
-            "playerA2": "โปรดปราน",
-            "playerB1": "ขอบคุณ",
-            "playerB2": "ฟรานส์"
+            "playerA1": "ภาคิน",
+            "playerA2": "ไบรท์",
+            "playerB1": "ฟรานส์",
+            "playerB2": "มีตังค์"
         },
         {
             "id": 11,
             "round": 11,
             "type": "pole",
-            "teamA": "#ff4b5c",
-            "teamB": "#00ff66",
-            "playerA1": "ฟีนิกซ์",
-            "playerA2": "TinTin",
-            "playerB1": "ฟลินน์",
-            "playerB2": "ขอบคุณ"
+            "teamA": "#00ff66",
+            "teamB": "#00f0ff",
+            "playerA1": "เลโก้",
+            "playerA2": "อาเหยียน",
+            "playerB1": "อินเวสต์",
+            "playerB2": "เชอริล"
         },
         {
             "id": 12,
             "round": 12,
             "type": "pole",
-            "teamA": "#00ff66",
-            "teamB": "#00f0ff",
-            "playerA1": "มีตังค์",
-            "playerA2": "ฟลินน์",
-            "playerB1": "อะตอมW",
-            "playerB2": "ภูเขา"
+            "teamA": "#00f0ff",
+            "teamB": "#ff4b5c",
+            "playerA1": "ณคุณ",
+            "playerA2": "เท็นเท็น",
+            "playerB1": "ภูผา",
+            "playerB2": "นาคิน"
         },
         {
             "id": 13,
             "round": 13,
             "type": "pole",
             "teamA": "#00f0ff",
-            "teamB": "#ffd600",
-            "playerA1": "อะตอมW",
-            "playerA2": "ภูเขา",
-            "playerB1": "ลูกแก้ว",
-            "playerB2": "Cani"
+            "teamB": "#ff4b5c",
+            "playerA1": "อุ่นใจ",
+            "playerA2": "เชอริล",
+            "playerB1": "อคิณ",
+            "playerB2": "ท้องฟ้า"
         }
     ]
 };
@@ -2425,64 +2427,64 @@ const SUNDAY_BIG_MATCHES = {
             "teamA": "#ffd600",
             "teamB": "#ff4b5c",
             "playerA1": "Harry",
-            "playerA2": "แทนเทน",
-            "playerB1": "Onewon",
-            "playerB2": "ทีเค"
+            "playerA2": "ลูว่า",
+            "playerB1": "ซอจุน",
+            "playerB2": "Onewon"
         },
         {
             "id": 2,
             "round": 2,
             "type": "pole",
-            "teamA": "#00f0ff",
-            "teamB": "#ffd600",
-            "playerA1": "คีริน",
-            "playerA2": "ไตเติ้ล",
-            "playerB1": "ออสติน",
-            "playerB2": "มิตตะ"
+            "teamA": "#00ff66",
+            "teamB": "#00f0ff",
+            "playerA1": "ทุน",
+            "playerA2": "Prize",
+            "playerB1": "ไตเติ้ล",
+            "playerB2": "Cooper"
         },
         {
             "id": 3,
             "round": 3,
             "type": "pole",
-            "teamA": "#ff4b5c",
-            "teamB": "#ffd600",
-            "playerA1": "Smith",
-            "playerA2": "ลีโอ",
-            "playerB1": "มิตตะ",
-            "playerB2": "แทนเทน"
+            "teamA": "#00ff66",
+            "teamB": "#00f0ff",
+            "playerA1": "ต่อ",
+            "playerA2": "ลิปตัล",
+            "playerB1": "นนท์",
+            "playerB2": "คีริน"
         },
         {
             "id": 4,
             "round": 4,
             "type": "pole",
-            "teamA": "#00f0ff",
+            "teamA": "#ffd600",
             "teamB": "#ff4b5c",
-            "playerA1": "Cooper",
-            "playerA2": "นนท์",
-            "playerB1": "ซออุน",
-            "playerB2": "Smith"
+            "playerA1": "แทค",
+            "playerA2": "มรรค",
+            "playerB1": "แพงตอง",
+            "playerB2": "TottiWBB"
         },
         {
             "id": 5,
             "round": 5,
             "type": "pole",
-            "teamA": "#00f0ff",
-            "teamB": "#ffd600",
-            "playerA1": "คีริน",
-            "playerA2": "Cooper",
-            "playerB1": "ลูว่า",
-            "playerB2": "Harry"
+            "teamA": "#00ff66",
+            "teamB": "#00f0ff",
+            "playerA1": "โฟโต้",
+            "playerA2": "Smart",
+            "playerB1": "อันยา",
+            "playerB2": "ดีโน่"
         },
         {
             "id": 6,
             "round": 6,
             "type": "pole",
-            "teamA": "#ff4b5c",
-            "teamB": "#ffd600",
-            "playerA1": "คามิน",
-            "playerA2": "ปอท่อ",
-            "playerB1": "ซันจิ",
-            "playerB2": "คิดถึง"
+            "teamA": "#00ff66",
+            "teamB": "#00f0ff",
+            "playerA1": "พาย",
+            "playerA2": "PV",
+            "playerB1": "เฌอโม่",
+            "playerB2": "โกฮัง"
         },
         {
             "id": 7,
@@ -2490,65 +2492,65 @@ const SUNDAY_BIG_MATCHES = {
             "type": "pole",
             "teamA": "#00ff66",
             "teamB": "#00f0ff",
-            "playerA1": "โฟโต้",
-            "playerA2": "Gaspard",
-            "playerB1": "โกฮัง",
+            "playerA1": "พังก้า",
+            "playerA2": "แมค",
+            "playerB1": "องศา",
             "playerB2": "พบ"
         },
         {
             "id": 8,
             "round": 8,
             "type": "pole",
-            "teamA": "#ff4b5c",
-            "teamB": "#00f0ff",
-            "playerA1": "ภูดิน",
-            "playerA2": "ปุ๊บปั๊บ",
-            "playerB1": "เอิร์ท",
-            "playerB2": "ดีโน่"
+            "teamA": "#ffd600",
+            "teamB": "#ff4b5c",
+            "playerA1": "ริชชี่",
+            "playerA2": "โบนัส",
+            "playerB1": "คามิน",
+            "playerB2": "ปุ๊บปั๊บ"
         },
         {
             "id": 9,
             "round": 9,
             "type": "pole",
-            "teamA": "#ff4b5c",
-            "teamB": "#00f0ff",
-            "playerA1": "ออนเซน",
-            "playerA2": "แพงตอง",
-            "playerB1": "อันยา",
-            "playerB2": "องศา"
+            "teamA": "#ffd600",
+            "teamB": "#ff4b5c",
+            "playerA1": "มิตตะ",
+            "playerA2": "อัลฟา",
+            "playerB1": "ทีเค",
+            "playerB2": "ปอท่อ"
         },
         {
             "id": 10,
             "round": 10,
             "type": "pole",
-            "teamA": "#00f0ff",
-            "teamB": "#ffd600",
-            "playerA1": "มอนเน่",
-            "playerA2": "เฌอโม่",
-            "playerB1": "มรรค",
-            "playerB2": "แทค"
+            "teamA": "#00ff66",
+            "teamB": "#00f0ff",
+            "playerA1": "ตฤณ",
+            "playerA2": "Gaspard",
+            "playerB1": "มอนเน่",
+            "playerB2": "เอิร์ท"
         },
         {
             "id": 11,
             "round": 11,
             "type": "pole",
-            "teamA": "#ff4b5c",
-            "teamB": "#00f0ff",
-            "playerA1": "TottiWBB",
-            "playerA2": "ภูดิน",
-            "playerB1": "อันยา",
-            "playerB2": "โกฮัง"
+            "teamA": "#ffd600",
+            "teamB": "#ff4b5c",
+            "playerA1": "ออสติน",
+            "playerA2": "แทนเทน",
+            "playerB1": "ลีโอ",
+            "playerB2": "Smith"
         },
         {
             "id": 12,
             "round": 12,
             "type": "pole",
-            "teamA": "#00ff66",
-            "teamB": "#ffd600",
-            "playerA1": "ตฤณ",
-            "playerA2": "พาย",
-            "playerB1": "โบนัส",
-            "playerB2": "ริชชี่"
+            "teamA": "#ffd600",
+            "teamB": "#ff4b5c",
+            "playerA1": "คิดถึง",
+            "playerA2": "ซันจิ",
+            "playerB1": "ภูดิน",
+            "playerB2": "ออนเซน"
         }
     ],
     "2": [
@@ -2556,133 +2558,133 @@ const SUNDAY_BIG_MATCHES = {
             "id": 1,
             "round": 1,
             "type": "pole",
-            "teamA": "#00f0ff",
-            "teamB": "#ff4b5c",
-            "playerA1": "ไตเติ้ล",
-            "playerA2": "นนท์",
-            "playerB1": "ซออุน",
-            "playerB2": "ลีโอ"
+            "teamA": "#ffd600",
+            "teamB": "#00f0ff",
+            "playerA1": "โบนัส",
+            "playerA2": "ซันจิ",
+            "playerB1": "เฌอโม่",
+            "playerB2": "มอนเน่"
         },
         {
             "id": 2,
             "round": 2,
             "type": "pole",
-            "teamA": "#ffd600",
+            "teamA": "#00f0ff",
             "teamB": "#ff4b5c",
-            "playerA1": "แทนเทน",
-            "playerA2": "ลูว่า",
-            "playerB1": "ทีเค",
-            "playerB2": "Smith"
+            "playerA1": "องศา",
+            "playerA2": "อันยา",
+            "playerB1": "ภูดิน",
+            "playerB2": "คามิน"
         },
         {
             "id": 3,
             "round": 3,
             "type": "pole",
-            "teamA": "#ff4b5c",
-            "teamB": "#00f0ff",
-            "playerA1": "Onewon",
-            "playerA2": "ทีเค",
-            "playerB1": "Cooper",
-            "playerB2": "คีริน"
+            "teamA": "#00ff66",
+            "teamB": "#ff4b5c",
+            "playerA1": "Gaspard",
+            "playerA2": "PV",
+            "playerB1": "ลีโอ",
+            "playerB2": "ซออุน"
         },
         {
             "id": 4,
             "round": 4,
             "type": "pole",
-            "teamA": "#ff4b5c",
-            "teamB": "#ffd600",
-            "playerA1": "Onewon",
-            "playerA2": "ลีโอ",
-            "playerB1": "Harry",
-            "playerB2": "ออสติน"
+            "teamA": "#ffd600",
+            "teamB": "#00f0ff",
+            "playerA1": "คิดถึง",
+            "playerA2": "ริชชี่",
+            "playerB1": "คีริน",
+            "playerB2": "Cooper"
         },
         {
             "id": 5,
             "round": 5,
             "type": "pole",
-            "teamA": "#00ff66",
-            "teamB": "#ff4b5c",
-            "playerA1": "Prize",
-            "playerA2": "ต่อ",
-            "playerB1": "Smith",
-            "playerB2": "ซออุน"
+            "teamA": "#ffd600",
+            "teamB": "#00ff66",
+            "playerA1": "ลูว่า",
+            "playerA2": "แทนเทน",
+            "playerB1": "ลิปตัล",
+            "playerB2": "Prize"
         },
         {
             "id": 6,
             "round": 6,
             "type": "pole",
-            "teamA": "#00ff66",
-            "teamB": "#ffd600",
-            "playerA1": "PV",
-            "playerA2": "แมค",
-            "playerB1": "แทค",
-            "playerB2": "ริชชี่"
+            "teamA": "#ffd600",
+            "teamB": "#00ff66",
+            "playerA1": "ออสติน",
+            "playerA2": "Harry",
+            "playerB1": "ทุน",
+            "playerB2": "ต่อ"
         },
         {
             "id": 7,
             "round": 7,
             "type": "pole",
-            "teamA": "#00f0ff",
+            "teamA": "#ffd600",
             "teamB": "#00ff66",
-            "playerA1": "ดีโน่",
-            "playerA2": "มอนเน่",
-            "playerB1": "ตฤณ",
-            "playerB2": "พาย"
+            "playerA1": "มิตตะ",
+            "playerA2": "แทค",
+            "playerB1": "พาย",
+            "playerB2": "ตฤณ"
         },
         {
             "id": 8,
             "round": 8,
             "type": "pole",
-            "teamA": "#ff4b5c",
+            "teamA": "#ffd600",
             "teamB": "#00f0ff",
-            "playerA1": "แพงตอง",
-            "playerA2": "ปอท่อ",
-            "playerB1": "โกฮัง",
-            "playerB2": "พบ"
+            "playerA1": "มรรค",
+            "playerA2": "อัลฟา",
+            "playerB1": "ไตเติ้ล",
+            "playerB2": "นนท์"
         },
         {
             "id": 9,
             "round": 9,
             "type": "pole",
-            "teamA": "#ff4b5c",
-            "teamB": "#00f0ff",
-            "playerA1": "ปุ๊บปั๊บ",
-            "playerA2": "คามิน",
-            "playerB1": "เอิร์ท",
-            "playerB2": "เฌอโม่"
+            "teamA": "#00ff66",
+            "teamB": "#ff4b5c",
+            "playerA1": "พังก้า",
+            "playerA2": "โฟโต้",
+            "playerB1": "Onewon",
+            "playerB2": "Smith"
         },
         {
             "id": 10,
             "round": 10,
             "type": "pole",
-            "teamA": "#00ff66",
-            "teamB": "#ffd600",
-            "playerA1": "Gaspard",
-            "playerA2": "พังก้า",
-            "playerB1": "คิดถึง",
-            "playerB2": "ซันจิ"
+            "teamA": "#00f0ff",
+            "teamB": "#ff4b5c",
+            "playerA1": "ดีโน่",
+            "playerA2": "พบ",
+            "playerB1": "ปุ๊บปั๊บ",
+            "playerB2": "ออนเซน"
         },
         {
             "id": 11,
             "round": 11,
             "type": "pole",
-            "teamA": "#ffd600",
-            "teamB": "#00ff66",
-            "playerA1": "อัลฟา",
-            "playerA2": "มรรค",
-            "playerB1": "โฟโต้",
-            "playerB2": "Smart"
+            "teamA": "#00ff66",
+            "teamB": "#ff4b5c",
+            "playerA1": "Smart",
+            "playerA2": "แมค",
+            "playerB1": "ทีเค",
+            "playerB2": "แพงตอง"
         },
         {
             "id": 12,
             "round": 12,
             "type": "pole",
             "teamA": "#00f0ff",
-            "teamB": "#ffd600",
-            "playerA1": "อันยา",
-            "playerA2": "องศา",
-            "playerB1": "คิดถึง",
-            "playerB2": "มรรค"
+            "teamB": "#ff4b5c",
+            "playerA1": "เอิร์ท",
+            "playerA2": "โกฮัง",
+            "playerB1": "TottiWBB",
+            "playerB2": "ปอท่อ"
         }
     ],
     "3": [
@@ -2691,108 +2693,108 @@ const SUNDAY_BIG_MATCHES = {
             "round": 1,
             "type": "fishing",
             "playerYellow": "ออสติน",
-            "playerGreen": "ลิปตัล",
-            "playerBlue": "คีริน",
-            "playerRed": "Smith"
+            "playerGreen": "ทุน",
+            "playerBlue": "ไตเติ้ล",
+            "playerRed": "ลีโอ"
         },
         {
             "id": 2,
             "round": 2,
             "type": "fishing",
             "playerYellow": "Harry",
-            "playerGreen": "ทุน",
-            "playerBlue": "Cooper",
-            "playerRed": "Onewon"
+            "playerGreen": "ต่อ",
+            "playerBlue": "นนท์",
+            "playerRed": "ซออุน"
         },
         {
             "id": 3,
             "round": 3,
             "type": "fishing",
-            "playerYellow": "ลูว่า",
-            "playerGreen": "Prize",
-            "playerBlue": "นนท์",
-            "playerRed": "ซออุน"
+            "playerYellow": "แทค",
+            "playerGreen": "ตฤณ",
+            "playerBlue": "มอนเน่",
+            "playerRed": "แพงตอง"
         },
         {
             "id": 4,
             "round": 4,
             "type": "fishing",
-            "playerYellow": "แทนเทน",
-            "playerGreen": "ต่อ",
-            "playerBlue": "ไตเติ้ล",
+            "playerYellow": "มิตตะ",
+            "playerGreen": "พาย",
+            "playerBlue": "เฌอโม่",
             "playerRed": "ทีเค"
         },
         {
             "id": 5,
             "round": 5,
             "type": "fishing",
-            "playerYellow": "มิตตะ",
-            "playerGreen": "ลิปตัล",
-            "playerBlue": "ไตเติ้ล",
-            "playerRed": "ลีโอ"
+            "playerYellow": "ซันจิ",
+            "playerGreen": "แมค",
+            "playerBlue": "พบ",
+            "playerRed": "ออนเซน"
         },
         {
             "id": 6,
             "round": 6,
             "type": "fishing",
-            "playerYellow": "มรรค",
-            "playerGreen": "พังก้า",
-            "playerBlue": "องศา",
-            "playerRed": "แพงตอง"
+            "playerYellow": "โบนัส",
+            "playerGreen": "Smart",
+            "playerBlue": "ดีโน่",
+            "playerRed": "ปุ๊บปั๊บ"
         },
         {
             "id": 7,
             "round": 7,
             "type": "fishing",
-            "playerYellow": "โบนัส",
-            "playerGreen": "Smart",
-            "playerBlue": "อันยา",
-            "playerRed": "TottiWBB"
+            "playerYellow": "ลูว่า",
+            "playerGreen": "ลิปตัล",
+            "playerBlue": "คีริน",
+            "playerRed": "Onewon"
         },
         {
             "id": 8,
             "round": 8,
             "type": "fishing",
-            "playerYellow": "แทค",
-            "playerGreen": "Gaspard",
-            "playerBlue": "มอนเน่",
-            "playerRed": "ออนเซน"
+            "playerYellow": "คิดถึง",
+            "playerGreen": "พังก้า",
+            "playerBlue": "องศา",
+            "playerRed": "ภูดิน"
         },
         {
             "id": 9,
             "round": 9,
             "type": "fishing",
-            "playerYellow": "ริชชี่",
-            "playerGreen": "พาย",
-            "playerBlue": "ดีโน่",
-            "playerRed": "ภูดิน"
+            "playerYellow": "มรรค",
+            "playerGreen": "Gaspard",
+            "playerBlue": "เอิร์ท",
+            "playerRed": "TottiWBB"
         },
         {
             "id": 10,
             "round": 10,
             "type": "fishing",
             "playerYellow": "อัลฟา",
-            "playerGreen": "ตฤณ",
+            "playerGreen": "PV",
             "playerBlue": "โกฮัง",
-            "playerRed": "ปุ๊บปั๊บ"
+            "playerRed": "ปอท่อ"
         },
         {
             "id": 11,
             "round": 11,
             "type": "fishing",
-            "playerYellow": "คิดถึง",
-            "playerGreen": "แมค",
-            "playerBlue": "พบ",
-            "playerRed": "ปอท่อ"
+            "playerYellow": "ริชชี่",
+            "playerGreen": "โฟโต้",
+            "playerBlue": "อันยา",
+            "playerRed": "คามิน"
         },
         {
             "id": 12,
             "round": 12,
             "type": "fishing",
-            "playerYellow": "ซันจิ",
-            "playerGreen": "โฟโต้",
-            "playerBlue": "เอิร์ท",
-            "playerRed": "คามิน"
+            "playerYellow": "แทนเทน",
+            "playerGreen": "Prize",
+            "playerBlue": "Cooper",
+            "playerRed": "Smith"
         }
     ],
     "4": [
@@ -2801,132 +2803,132 @@ const SUNDAY_BIG_MATCHES = {
             "round": 1,
             "type": "pole",
             "teamA": "#ffd600",
-            "teamB": "#00ff66",
+            "teamB": "#ff4b5c",
             "playerA1": "มิตตะ",
-            "playerA2": "ลูว่า",
-            "playerB1": "ต่อ",
-            "playerB2": "Prize"
+            "playerA2": "มรรค",
+            "playerB1": "ทีเค",
+            "playerB2": "TottiWBB"
         },
         {
             "id": 2,
             "round": 2,
             "type": "pole",
-            "teamA": "#ff4b5c",
+            "teamA": "#ffd600",
             "teamB": "#00ff66",
-            "playerA1": "ลีโอ",
-            "playerA2": "ซออุน",
-            "playerB1": "ลิปตัล",
-            "playerB2": "ต่อ"
+            "playerA1": "ริชชี่",
+            "playerA2": "ซันจิ",
+            "playerB1": "โฟโต้",
+            "playerB2": "แมค"
         },
         {
             "id": 3,
             "round": 3,
             "type": "pole",
-            "teamA": "#00ff66",
-            "teamB": "#ffd600",
-            "playerA1": "ทุน",
-            "playerA2": "ลิปตัล",
-            "playerB1": "ออสติน",
-            "playerB2": "Harry"
+            "teamA": "#ffd600",
+            "teamB": "#00ff66",
+            "playerA1": "คิดถึง",
+            "playerA2": "โบนัส",
+            "playerB1": "พังก้า",
+            "playerB2": "Smart"
         },
         {
             "id": 4,
             "round": 4,
             "type": "pole",
-            "teamA": "#00ff66",
-            "teamB": "#ffd600",
-            "playerA1": "Prize",
-            "playerA2": "ทุน",
-            "playerB1": "มิตตะ",
-            "playerB2": "ลูว่า"
+            "teamA": "#ffd600",
+            "teamB": "#ff4b5c",
+            "playerA1": "Harry",
+            "playerA2": "แทนเทน",
+            "playerB1": "ซออุน",
+            "playerB2": "Smith"
         },
         {
             "id": 5,
             "round": 5,
             "type": "pole",
-            "teamA": "#ff4b5c",
-            "teamB": "#ffd600",
-            "playerA1": "ทีเค",
-            "playerA2": "Onewon",
-            "playerB1": "แทนเทน",
-            "playerB2": "ออสติน"
+            "teamA": "#00f0ff",
+            "teamB": "#ff4b5c",
+            "playerA1": "มอนเน่",
+            "playerA2": "โกฮัง",
+            "playerB1": "แพงตอง",
+            "playerB2": "ปอท่อ"
         },
         {
             "id": 6,
             "round": 6,
             "type": "pole",
-            "teamA": "#ffd600",
-            "teamB": "#00f0ff",
-            "playerA1": "อัลฟา",
-            "playerA2": "โบนัส",
-            "playerB1": "เอิร์ท",
-            "playerB2": "เฌอโม่"
+            "teamA": "#00f0ff",
+            "teamB": "#ff4b5c",
+            "playerA1": "อันยา",
+            "playerA2": "พบ",
+            "playerB1": "คามิน",
+            "playerB2": "ออนเซน"
         },
         {
             "id": 7,
             "round": 7,
             "type": "pole",
-            "teamA": "#00f0ff",
-            "teamB": "#00ff66",
-            "playerA1": "องศา",
-            "playerA2": "เฌอโม่",
-            "playerB1": "PV",
-            "playerB2": "แมค"
+            "teamA": "#00ff66",
+            "teamB": "#00f0ff",
+            "playerA1": "ต่อ",
+            "playerA2": "Prize",
+            "playerB1": "นนท์",
+            "playerB2": "Cooper"
         },
         {
             "id": 8,
             "round": 8,
             "type": "pole",
             "teamA": "#00ff66",
-            "teamB": "#ff4b5c",
-            "playerA1": "Smart",
-            "playerA2": "พังก้า",
-            "playerB1": "TottiWBB",
-            "playerB2": "คามิน"
+            "teamB": "#00f0ff",
+            "playerA1": "พาย",
+            "playerA2": "Gaspard",
+            "playerB1": "เฌอโม่",
+            "playerB2": "เอิร์ท"
         },
         {
             "id": 9,
             "round": 9,
             "type": "pole",
             "teamA": "#00f0ff",
-            "teamB": "#00ff66",
-            "playerA1": "พบ",
-            "playerA2": "มอนเน่",
-            "playerB1": "ตฤณ",
-            "playerB2": "โฟโต้"
+            "teamB": "#ff4b5c",
+            "playerA1": "องศา",
+            "playerA2": "ดีโน่",
+            "playerB1": "ภูดิน",
+            "playerB2": "ปุ๊บปั๊บ"
         },
         {
             "id": 10,
             "round": 10,
             "type": "pole",
-            "teamA": "#ffd600",
-            "teamB": "#00ff66",
-            "playerA1": "ริชชี่",
-            "playerA2": "โบนัส",
-            "playerB1": "พาย",
-            "playerB2": "Smart"
+            "teamA": "#00ff66",
+            "teamB": "#00f0ff",
+            "playerA1": "ทุน",
+            "playerA2": "ลิปตัล",
+            "playerB1": "ไตเติ้ล",
+            "playerB2": "คีริน"
         },
         {
             "id": 11,
             "round": 11,
             "type": "pole",
-            "teamA": "#00ff66",
-            "teamB": "#ff4b5c",
-            "playerA1": "Gaspard",
-            "playerA2": "PV",
-            "playerB1": "ออนเซน",
-            "playerB2": "ปุ๊บปั๊บ"
+            "teamA": "#ffd600",
+            "teamB": "#00ff66",
+            "playerA1": "แทค",
+            "playerA2": "อัลฟา",
+            "playerB1": "ตฤณ",
+            "playerB2": "PV"
         },
         {
             "id": 12,
             "round": 12,
             "type": "pole",
-            "teamA": "#00ff66",
+            "teamA": "#ffd600",
             "teamB": "#ff4b5c",
-            "playerA1": "แมค",
-            "playerA2": "พังก้า",
-            "playerB1": "ปอท่อ",
-            "playerB2": "ภูดิน"
+            "playerA1": "ออสติน",
+            "playerA2": "ลูว่า",
+            "playerB1": "ลีโอ",
+            "playerB2": "Onewon"
         }
     ]
 };
@@ -4313,12 +4315,4 @@ function updateColorMode() {
         .forEach(btn => {
             btn.style.display = isSaturday ? 'none' : '';
         });
-}
-function checkIfSingleMatchGame(gameNum, category) {
-    const gameName = getActiveGameName(gameNum);
-
-    return (
-        gameName === 'Bowling' &&
-        category === 'sunday_small'
-    );
 }
