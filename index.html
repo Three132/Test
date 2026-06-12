@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="ระบบบันทึกคะแนนเกมและตารางอันดับแบบเรียลไทม์ ใช้งานง่ายสำหรับ 4 หมวดเกมพร้อมการแสดงผลกราฟิกสีสันสวยงาม">
-    <title>RoboSportDay | เว็บไซต์กรอกคะแนน 4 เกม</title>
+    <title>ROBOSPORTDAY | เว็บไซต์กรอกคะแนน 4 เกม</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="g1-accent">
@@ -16,7 +16,7 @@
                     <circle cx="12" cy="8" r="7"/>
                     <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
                 </svg>
-                RoboSportDay <span>ARENA</span>
+                ROBOSPORTDAY <span>ARENA</span>
             </h1>
             <p>ระบบกรอกคะแนนและประเมินผลกิจกรรมการแข่งขัน</p>
         </div>
@@ -176,36 +176,37 @@
                         <div class="form-group" style="margin-bottom: 1.25rem;">
                             <label for="player-name">ชื่อผู้เล่น / ทีม</label>
                             <div class="input-wrapper">
-                                <input type="text" id="player-name" placeholder="ระบุชื่อผู้เล่นหรือทีม..." required autocomplete="off">
-                                <div id="name-suggestions" class="name-suggestions-list" style="display: none;"></div>
+                                <select id="player-name" required class="standard-select">
+                                    <option value="" disabled selected>-- เลือกชื่อน้อง --</option>
+                                </select>
                             </div>
                         </div>
 
-                        <!-- Input Color: 4 Named Buttons -->
+                        <!-- Input Color: 2 Named Buttons -->
                         <div class="form-group" style="margin-bottom: 1.25rem;">
                             <label>เลือกสีประจำตัว</label>
-                            <div class="color-name-selector">
+                            <div class="color-name-selector" style="grid-template-columns: repeat(4, 1fr);">
                                 <button type="button" class="color-name-btn selected" data-color="blue" data-hex="#00f0ff" aria-label="สีน้ำเงิน">
                                     <span class="color-dot-small" style="background:#00f0ff;"></span>
                                     น้ำเงิน
-                                </button>
-                                <button type="button" class="color-name-btn" data-color="green" data-hex="#00ff66" aria-label="สีเขียว">
-                                    <span class="color-dot-small" style="background:#00ff66;"></span>
-                                    เขียว
-                                </button>
-                                <button type="button" class="color-name-btn" data-color="yellow" data-hex="#ffd600" aria-label="สีเหลือง">
-                                    <span class="color-dot-small" style="background:#ffd600;"></span>
-                                    เหลือง
                                 </button>
                                 <button type="button" class="color-name-btn" data-color="red" data-hex="#ff4b5c" aria-label="สีแดง">
                                     <span class="color-dot-small" style="background:#ff4b5c;"></span>
                                     แดง
                                 </button>
+                                <button type="button" class="color-name-btn" data-color="yellow" data-hex="#ffd600" aria-label="สีเหลือง">
+                                    <span class="color-dot-small" style="background:#ffd600;"></span>
+                                    เหลือง
+                                </button>
+                                <button type="button" class="color-name-btn" data-color="green" data-hex="#00ff66" aria-label="สีเขียว">
+                                    <span class="color-dot-small" style="background:#00ff66;"></span>
+                                    เขียว
+                                </button>
                             </div>
                         </div>
 
                         <!-- Input Score with modifier controls -->
-                        <div class="form-group">
+                        <div class="form-group" id="score-input-group">
                             <label for="player-score">คะแนน</label>
                             <div class="score-input-container">
                                 <button type="button" class="score-control-btn" id="score-minus-5" title="ลด 5 คะแนน">-5</button>
@@ -215,36 +216,67 @@
                                 <button type="button" class="score-control-btn" id="score-plus-5" title="เพิ่ม 5 คะแนน">+5</button>
                             </div>
                         </div>
+
+                        <!-- Objects Hit Selector (Game 1 Sunday Small Only) -->
+                        <div class="form-group" id="objects-hit-group" style="display: none; margin-top: 1.25rem;">
+                            <label>จำนวนวัตถุที่โดน (อันละ 30 แต้ม / 3 อัน 100 แต้ม)</label>
+                            <div class="objects-selector" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem;">
+                                <button type="button" class="form-game-btn active" data-hits="0" style="padding: 0.8rem 0.2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2;">
+                                    <span style="font-weight: 800; font-size: 1.05rem;">0 อัน</span>
+                                    <span style="font-size: 0.75rem; font-weight: normal; opacity: 0.8; margin-top: 2px;">0 แต้ม</span>
+                                </button>
+                                <button type="button" class="form-game-btn" data-hits="1" style="padding: 0.8rem 0.2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2;">
+                                    <span style="font-weight: 800; font-size: 1.05rem;">1 อัน</span>
+                                    <span style="font-size: 0.75rem; font-weight: normal; opacity: 0.8; margin-top: 2px;">30 แต้ม</span>
+                                </button>
+                                <button type="button" class="form-game-btn" data-hits="2" style="padding: 0.8rem 0.2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2;">
+                                    <span style="font-weight: 800; font-size: 1.05rem;">2 อัน</span>
+                                    <span style="font-size: 0.75rem; font-weight: normal; opacity: 0.8; margin-top: 2px;">60 แต้ม</span>
+                                </button>
+                                <button type="button" class="form-game-btn" data-hits="3" style="padding: 0.8rem 0.2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2;">
+                                    <span style="font-weight: 800; font-size: 1.05rem;">3 อัน</span>
+                                    <span style="font-size: 0.75rem; font-weight: normal; opacity: 0.8; margin-top: 2px; color: #ffd600;">100 แต้ม</span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Matchup Form Fields (Game 1) -->
+                    <!-- Matchup Form Fields -->
                     <div id="match-form-fields" style="display: none;">
                         <!-- Team A Selection -->
                         <div class="form-group" style="margin-bottom: 1.25rem;">
                             <label>ทีมที่ 1</label>
-                            <div class="color-name-selector" id="match-team-a-selector">
+                            <div class="color-name-selector" style="grid-template-columns: repeat(4, 1fr);" id="match-team-a-selector">
                                 <button type="button" class="color-name-btn selected" data-color="blue" data-hex="#00f0ff" aria-label="ทีม A สีน้ำเงิน">
                                     <span class="color-dot-small" style="background:#00f0ff;"></span>
                                     น้ำเงิน
-                                </button>
-                                <button type="button" class="color-name-btn" data-color="green" data-hex="#00ff66" aria-label="ทีม A สีเขียว">
-                                    <span class="color-dot-small" style="background:#00ff66;"></span>
-                                    เขียว
-                                </button>
-                                <button type="button" class="color-name-btn" data-color="yellow" data-hex="#ffd600" aria-label="ทีม A สีเหลือง">
-                                    <span class="color-dot-small" style="background:#ffd600;"></span>
-                                    เหลือง
                                 </button>
                                 <button type="button" class="color-name-btn" data-color="red" data-hex="#ff4b5c" aria-label="ทีม A สีแดง">
                                     <span class="color-dot-small" style="background:#ff4b5c;"></span>
                                     แดง
                                 </button>
+                                <button type="button" class="color-name-btn" data-color="yellow" data-hex="#ffd600" aria-label="ทีม A สีเหลือง">
+                                    <span class="color-dot-small" style="background:#ffd600;"></span>
+                                    เหลือง
+                                </button>
+                                <button type="button" class="color-name-btn" data-color="green" data-hex="#00ff66" aria-label="ทีม A สีเขียว">
+                                    <span class="color-dot-small" style="background:#00ff66;"></span>
+                                    เขียว
+                                </button>
                             </div>
                         </div>
 
-                        <!-- Team A Weight -->
+                        <!-- Team A Player Selection -->
                         <div class="form-group" style="margin-bottom: 1.25rem;">
-                            <label for="match-weight-a">น้ำหนักทีมที่ 1 (กิโลกรัม)</label>
+                            <label for="match-player-a">ผู้เล่นทีมที่ 1</label>
+                            <select id="match-player-a" class="standard-select">
+                                <option value="" disabled selected>-- เลือกชื่อน้อง --</option>
+                            </select>
+                        </div>
+
+                        <!-- Team A Weight / Points -->
+                        <div class="form-group" style="margin-bottom: 1.25rem;" id="match-score-a-group">
+                            <label for="match-weight-a" id="match-label-a">น้ำหนักทีมที่ 1 (กิโลกรัม)</label>
                             <input type="number" id="match-weight-a" placeholder="ระบุน้ำหนักทีมที่ 1..." step="0.01" min="0">
                         </div>
 
@@ -254,29 +286,37 @@
                         <!-- Team B Selection -->
                         <div class="form-group" style="margin-bottom: 1.25rem;">
                             <label>ทีมที่ 2</label>
-                            <div class="color-name-selector" id="match-team-b-selector">
+                            <div class="color-name-selector" style="grid-template-columns: repeat(4, 1fr);" id="match-team-b-selector">
                                 <button type="button" class="color-name-btn" data-color="blue" data-hex="#00f0ff" aria-label="ทีม B สีน้ำเงิน">
                                     <span class="color-dot-small" style="background:#00f0ff;"></span>
                                     น้ำเงิน
-                                </button>
-                                <button type="button" class="color-name-btn" data-color="green" data-hex="#00ff66" aria-label="ทีม B สีเขียว">
-                                    <span class="color-dot-small" style="background:#00ff66;"></span>
-                                    เขียว
-                                </button>
-                                <button type="button" class="color-name-btn" data-color="yellow" data-hex="#ffd600" aria-label="ทีม B สีเหลือง">
-                                    <span class="color-dot-small" style="background:#ffd600;"></span>
-                                    เหลือง
                                 </button>
                                 <button type="button" class="color-name-btn selected" data-color="red" data-hex="#ff4b5c" aria-label="ทีม B สีแดง">
                                     <span class="color-dot-small" style="background:#ff4b5c;"></span>
                                     แดง
                                 </button>
+                                <button type="button" class="color-name-btn" data-color="yellow" data-hex="#ffd600" aria-label="ทีม B สีเหลือง">
+                                    <span class="color-dot-small" style="background:#ffd600;"></span>
+                                    เหลือง
+                                </button>
+                                <button type="button" class="color-name-btn" data-color="green" data-hex="#00ff66" aria-label="ทีม B สีเขียว">
+                                    <span class="color-dot-small" style="background:#00ff66;"></span>
+                                    เขียว
+                                </button>
                             </div>
                         </div>
 
-                        <!-- Team B Weight -->
+                        <!-- Team B Player Selection -->
                         <div class="form-group" style="margin-bottom: 1.25rem;">
-                            <label for="match-weight-b">น้ำหนักทีมที่ 2 (กิโลกรัม)</label>
+                            <label for="match-player-b">ผู้เล่นทีมที่ 2</label>
+                            <select id="match-player-b" class="standard-select">
+                                <option value="" disabled selected>-- เลือกชื่อน้อง --</option>
+                            </select>
+                        </div>
+
+                        <!-- Team B Weight / Points -->
+                        <div class="form-group" style="margin-bottom: 1.25rem;" id="match-score-b-group">
+                            <label for="match-weight-b" id="match-label-b">น้ำหนักทีมที่ 2 (กิโลกรัม)</label>
                             <input type="number" id="match-weight-b" placeholder="ระบุน้ำหนักทีมที่ 2..." step="0.01" min="0">
                         </div>
 
@@ -288,6 +328,279 @@
                                 <button type="button" class="form-game-btn" id="winner-team-b-btn" style="padding: 0.8rem 0.5rem;">ทีมที่ 2 ชนะ</button>
                             </div>
                             <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem; text-align: center;">ทีมชนะได้ +30 คะแนน &bull; ทีมแพ้ได้ +10 คะแนน</p>
+                        </div>
+                    </div>
+
+                    <!-- Pole Fighting Form Fields (2v2) -->
+                    <div id="pole-form-fields" style="display: none;">
+                        <!-- Team A Selection -->
+                        <div class="form-group" style="margin-bottom: 1.25rem;">
+                            <label>ทีมที่ 1</label>
+                            <div class="color-name-selector" style="grid-template-columns: repeat(4, 1fr);" id="pole-team-a-selector">
+                                <button type="button" class="color-name-btn selected" data-color="blue" data-hex="#00f0ff" aria-label="ทีม A สีน้ำเงิน">
+                                    <span class="color-dot-small" style="background:#00f0ff;"></span>
+                                    น้ำเงิน
+                                </button>
+                                <button type="button" class="color-name-btn" data-color="red" data-hex="#ff4b5c" aria-label="ทีม A สีแดง">
+                                    <span class="color-dot-small" style="background:#ff4b5c;"></span>
+                                    แดง
+                                </button>
+                                <button type="button" class="color-name-btn" data-color="yellow" data-hex="#ffd600" aria-label="ทีม A สีเหลือง">
+                                    <span class="color-dot-small" style="background:#ffd600;"></span>
+                                    เหลือง
+                                </button>
+                                <button type="button" class="color-name-btn" data-color="green" data-hex="#00ff66" aria-label="ทีม A สีเขียว">
+                                    <span class="color-dot-small" style="background:#00ff66;"></span>
+                                    เขียว
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Team A Player Dropdowns -->
+                        <div class="form-group" style="margin-bottom: 1.25rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;" id="pole-team-a-players-grid">
+                            <div>
+                                <label for="pole-player-a1" id="pole-label-a1" style="font-size: 0.8rem; margin-bottom: 0.25rem;">ผู้เล่น 1 (ทีมที่ 1)</label>
+                                <select id="pole-player-a1" class="standard-select" style="padding: 0.5rem; font-size: 0.85rem;">
+                                    <option value="" disabled selected>-- เลือกชื่อน้อง --</option>
+                                </select>
+                            </div>
+                            <div id="pole-player-a2-wrapper">
+                                <label for="pole-player-a2" id="pole-label-a2" style="font-size: 0.8rem; margin-bottom: 0.25rem;">ผู้เล่น 2 (ทีมที่ 1)</label>
+                                <select id="pole-player-a2" class="standard-select" style="padding: 0.5rem; font-size: 0.85rem;">
+                                    <option value="" disabled selected>-- เลือกชื่อน้อง --</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- VS Divider -->
+                        <div style="text-align: center; font-weight: 800; font-size: 1.2rem; color: var(--text-muted); margin: 0.5rem 0;">VS</div>
+
+                        <!-- Team B Selection -->
+                        <div class="form-group" style="margin-bottom: 1.25rem;">
+                            <label>ทีมที่ 2</label>
+                            <div class="color-name-selector" style="grid-template-columns: repeat(4, 1fr);" id="pole-team-b-selector">
+                                <button type="button" class="color-name-btn" data-color="blue" data-hex="#00f0ff" aria-label="ทีม B สีน้ำเงิน">
+                                    <span class="color-dot-small" style="background:#00f0ff;"></span>
+                                    น้ำเงิน
+                                </button>
+                                <button type="button" class="color-name-btn selected" data-color="red" data-hex="#ff4b5c" aria-label="ทีม B สีแดง">
+                                    <span class="color-dot-small" style="background:#ff4b5c;"></span>
+                                    แดง
+                                </button>
+                                <button type="button" class="color-name-btn" data-color="yellow" data-hex="#ffd600" aria-label="ทีม B สีเหลือง">
+                                    <span class="color-dot-small" style="background:#ffd600;"></span>
+                                    เหลือง
+                                </button>
+                                <button type="button" class="color-name-btn" data-color="green" data-hex="#00ff66" aria-label="ทีม B สีเขียว">
+                                    <span class="color-dot-small" style="background:#00ff66;"></span>
+                                    เขียว
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Team B Player Dropdowns -->
+                        <div class="form-group" style="margin-bottom: 1.25rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;" id="pole-team-b-players-grid">
+                            <div>
+                                <label for="pole-player-b1" id="pole-label-b1" style="font-size: 0.8rem; margin-bottom: 0.25rem;">ผู้เล่น 1 (ทีมที่ 2)</label>
+                                <select id="pole-player-b1" class="standard-select" style="padding: 0.5rem; font-size: 0.85rem;">
+                                    <option value="" disabled selected>-- เลือกชื่อน้อง --</option>
+                                </select>
+                            </div>
+                            <div id="pole-player-b2-wrapper">
+                                <label for="pole-player-b2" id="pole-label-b2" style="font-size: 0.8rem; margin-bottom: 0.25rem;">ผู้เล่น 2 (ทีมที่ 2)</label>
+                                <select id="pole-player-b2" class="standard-select" style="padding: 0.5rem; font-size: 0.85rem;">
+                                    <option value="" disabled selected>-- เลือกชื่อน้อง --</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Winner Selection -->
+                        <div class="form-group" style="margin-top: 1rem;">
+                            <label>ผู้ชนะ (Winner)</label>
+                            <div class="winner-selector" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                                <button type="button" class="form-game-btn active" id="pole-winner-a-btn" style="padding: 0.8rem 0.5rem;">ทีมที่ 1 ชนะ</button>
+                                <button type="button" class="form-game-btn" id="pole-winner-b-btn" style="padding: 0.8rem 0.5rem;">ทีมที่ 2 ชนะ</button>
+                            </div>
+                            <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem; text-align: center;">ทีมชนะได้ +30 คะแนน &bull; ทีมแพ้ได้ +10 คะแนน</p>
+                        </div>
+                    </div>
+
+
+                    <!-- Fishing Form Fields -->
+                    <div id="fishing-form-fields" style="display: none;">
+                        <div class="fishing-grid" style="grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                            <!-- Yellow Team -->
+                            <div class="fishing-team-card team-yellow">
+                                <span class="fishing-team-title">สีเหลือง</span>
+                                <div style="margin-bottom: 0.75rem;">
+                                    <label for="fishing-player-yellow" style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">ชื่อน้อง</label>
+                                    <select id="fishing-player-yellow" class="standard-select" style="padding: 0.5rem; font-size: 0.85rem; width: 100%;">
+                                        <option value="" disabled selected>-- เลือกชื่อน้อง --</option>
+                                    </select>
+                                </div>
+                                <div style="margin-bottom: 0.75rem;">
+                                    <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">จำนวนปลา</label>
+                                    <div class="fishing-control-row">
+                                        <button type="button" class="fishing-btn">-</button>
+                                        <input type="number" id="fishing-fish-yellow" class="fishing-input" value="0" min="0">
+                                        <button type="button" class="fishing-btn">+</button>
+                                    </div>
+                                </div>
+                                <span id="fishing-score-yellow" class="fishing-team-score">0 แต้ม</span>
+                            </div>
+                            
+                            <!-- Red Team -->
+                            <div class="fishing-team-card team-red">
+                                <span class="fishing-team-title">สีแดง</span>
+                                <div style="margin-bottom: 0.75rem;">
+                                    <label for="fishing-player-red" style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">ชื่อน้อง</label>
+                                    <select id="fishing-player-red" class="standard-select" style="padding: 0.5rem; font-size: 0.85rem; width: 100%;">
+                                        <option value="" disabled selected>-- เลือกชื่อน้อง --</option>
+                                    </select>
+                                </div>
+                                <div style="margin-bottom: 0.75rem;">
+                                    <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">จำนวนปลา</label>
+                                    <div class="fishing-control-row">
+                                        <button type="button" class="fishing-btn">-</button>
+                                        <input type="number" id="fishing-fish-red" class="fishing-input" value="0" min="0">
+                                        <button type="button" class="fishing-btn">+</button>
+                                    </div>
+                                </div>
+                                <span id="fishing-score-red" class="fishing-team-score">0 แต้ม</span>
+                            </div>
+                            
+                            <!-- Cyan Team -->
+                            <div class="fishing-team-card team-blue">
+                                <span class="fishing-team-title">สีน้ำเงิน</span>
+                                <div style="margin-bottom: 0.75rem;">
+                                    <label for="fishing-player-blue" style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">ชื่อน้อง</label>
+                                    <select id="fishing-player-blue" class="standard-select" style="padding: 0.5rem; font-size: 0.85rem; width: 100%;">
+                                        <option value="" disabled selected>-- เลือกชื่อน้อง --</option>
+                                    </select>
+                                </div>
+                                <div style="margin-bottom: 0.75rem;">
+                                    <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">จำนวนปลา</label>
+                                    <div class="fishing-control-row">
+                                        <button type="button" class="fishing-btn">-</button>
+                                        <input type="number" id="fishing-fish-blue" class="fishing-input" value="0" min="0">
+                                        <button type="button" class="fishing-btn">+</button>
+                                    </div>
+                                </div>
+                                <span id="fishing-score-blue" class="fishing-team-score">0 แต้ม</span>
+                            </div>
+                            
+                            <!-- Green Team -->
+                            <div class="fishing-team-card team-green">
+                                <span class="fishing-team-title">สีเขียว</span>
+                                <div style="margin-bottom: 0.75rem;">
+                                    <label for="fishing-player-green" style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">ชื่อน้อง</label>
+                                    <select id="fishing-player-green" class="standard-select" style="padding: 0.5rem; font-size: 0.85rem; width: 100%;">
+                                        <option value="" disabled selected>-- เลือกชื่อน้อง --</option>
+                                    </select>
+                                </div>
+                                <div style="margin-bottom: 0.75rem;">
+                                    <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">จำนวนปลา</label>
+                                    <div class="fishing-control-row">
+                                        <button type="button" class="fishing-btn">-</button>
+                                        <input type="number" id="fishing-fish-green" class="fishing-input" value="0" min="0">
+                                        <button type="button" class="fishing-btn">+</button>
+                                    </div>
+                                </div>
+                                <span id="fishing-score-green" class="fishing-team-score">0 แต้ม</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pick and Place 4-Way Form Fields -->
+                    <div id="pp4-form-fields" style="display: none;">
+                        <div class="fishing-grid" style="grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                            <!-- Yellow Team -->
+                            <div class="fishing-team-card team-yellow">
+                                <span class="fishing-team-title">สีเหลือง</span>
+                                <div style="margin-bottom: 0.75rem;">
+                                    <label for="pp4-player-yellow" style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">ชื่อน้อง</label>
+                                    <select id="pp4-player-yellow" class="standard-select" style="padding: 0.5rem; font-size: 0.85rem; width: 100%;">
+                                        <option value="" disabled selected>-- เลือกชื่อน้อง --</option>
+                                    </select>
+                                </div>
+                                <div style="margin-bottom: 0.75rem;">
+                                    <label for="pp4-weight-yellow" style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">น้ำหนัก (กก.)</label>
+                                    <input type="number" id="pp4-weight-yellow" class="standard-input" step="0.01" value="0" style="padding: 0.5rem; font-size: 0.85rem; width: 100%; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; background: rgba(255,255,255,0.03); color: #fff;">
+                                </div>
+                                <div style="margin-bottom: 0.75rem;">
+                                    <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">ผลการแข่ง</label>
+                                    <div class="result-toggle-row" style="display: flex; gap: 0.5rem;">
+                                        <button type="button" class="toggle-btn active" id="pp4-win-yellow" style="flex: 1; padding: 0.4rem; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: #000; font-weight: bold; font-size: 0.8rem; cursor: pointer;">ชนะ</button>
+                                        <button type="button" class="toggle-btn" id="pp4-loss-yellow" style="flex: 1; padding: 0.4rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); color: var(--text-secondary); font-weight: bold; font-size: 0.8rem; cursor: pointer;">แพ้</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Red Team -->
+                            <div class="fishing-team-card team-red">
+                                <span class="fishing-team-title">สีแดง</span>
+                                <div style="margin-bottom: 0.75rem;">
+                                    <label for="pp4-player-red" style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">ชื่อน้อง</label>
+                                    <select id="pp4-player-red" class="standard-select" style="padding: 0.5rem; font-size: 0.85rem; width: 100%;">
+                                        <option value="" disabled selected>-- เลือกชื่อน้อง --</option>
+                                    </select>
+                                </div>
+                                <div style="margin-bottom: 0.75rem;">
+                                    <label for="pp4-weight-red" style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">น้ำหนัก (กก.)</label>
+                                    <input type="number" id="pp4-weight-red" class="standard-input" step="0.01" value="0" style="padding: 0.5rem; font-size: 0.85rem; width: 100%; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; background: rgba(255,255,255,0.03); color: #fff;">
+                                </div>
+                                <div style="margin-bottom: 0.75rem;">
+                                    <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">ผลการแข่ง</label>
+                                    <div class="result-toggle-row" style="display: flex; gap: 0.5rem;">
+                                        <button type="button" class="toggle-btn active" id="pp4-win-red" style="flex: 1; padding: 0.4rem; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: #000; font-weight: bold; font-size: 0.8rem; cursor: pointer;">ชนะ</button>
+                                        <button type="button" class="toggle-btn" id="pp4-loss-red" style="flex: 1; padding: 0.4rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); color: var(--text-secondary); font-weight: bold; font-size: 0.8rem; cursor: pointer;">แพ้</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Blue Team -->
+                            <div class="fishing-team-card team-blue">
+                                <span class="fishing-team-title">สีน้ำเงิน</span>
+                                <div style="margin-bottom: 0.75rem;">
+                                    <label for="pp4-player-blue" style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">ชื่อน้อง</label>
+                                    <select id="pp4-player-blue" class="standard-select" style="padding: 0.5rem; font-size: 0.85rem; width: 100%;">
+                                        <option value="" disabled selected>-- เลือกชื่อน้อง --</option>
+                                    </select>
+                                </div>
+                                <div style="margin-bottom: 0.75rem;">
+                                    <label for="pp4-weight-blue" style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">น้ำหนัก (กก.)</label>
+                                    <input type="number" id="pp4-weight-blue" class="standard-input" step="0.01" value="0" style="padding: 0.5rem; font-size: 0.85rem; width: 100%; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; background: rgba(255,255,255,0.03); color: #fff;">
+                                </div>
+                                <div style="margin-bottom: 0.75rem;">
+                                    <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">ผลการแข่ง</label>
+                                    <div class="result-toggle-row" style="display: flex; gap: 0.5rem;">
+                                        <button type="button" class="toggle-btn active" id="pp4-win-blue" style="flex: 1; padding: 0.4rem; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: #000; font-weight: bold; font-size: 0.8rem; cursor: pointer;">ชนะ</button>
+                                        <button type="button" class="toggle-btn" id="pp4-loss-blue" style="flex: 1; padding: 0.4rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); color: var(--text-secondary); font-weight: bold; font-size: 0.8rem; cursor: pointer;">แพ้</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Green Team -->
+                            <div class="fishing-team-card team-green">
+                                <span class="fishing-team-title">สีเขียว</span>
+                                <div style="margin-bottom: 0.75rem;">
+                                    <label for="pp4-player-green" style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">ชื่อน้อง</label>
+                                    <select id="pp4-player-green" class="standard-select" style="padding: 0.5rem; font-size: 0.85rem; width: 100%;">
+                                        <option value="" disabled selected>-- เลือกชื่อน้อง --</option>
+                                    </select>
+                                </div>
+                                <div style="margin-bottom: 0.75rem;">
+                                    <label for="pp4-weight-green" style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">น้ำหนัก (กก.)</label>
+                                    <input type="number" id="pp4-weight-green" class="standard-input" step="0.01" value="0" style="padding: 0.5rem; font-size: 0.85rem; width: 100%; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; background: rgba(255,255,255,0.03); color: #fff;">
+                                </div>
+                                <div style="margin-bottom: 0.75rem;">
+                                    <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">ผลการแข่ง</label>
+                                    <div class="result-toggle-row" style="display: flex; gap: 0.5rem;">
+                                        <button type="button" class="toggle-btn active" id="pp4-win-green" style="flex: 1; padding: 0.4rem; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: #000; font-weight: bold; font-size: 0.8rem; cursor: pointer;">ชนะ</button>
+                                        <button type="button" class="toggle-btn" id="pp4-loss-green" style="flex: 1; padding: 0.4rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); color: var(--text-secondary); font-weight: bold; font-size: 0.8rem; cursor: pointer;">แพ้</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -358,6 +671,7 @@
                         <!-- Dynamic Javascript Rendering -->
                     </div>
                 </div>
+            </section>
         </main>
 
         <!-- Standings Summary Panel -->
