@@ -450,12 +450,15 @@ function setupRealtimeSync(categoryKey) {
 function saveDataToFirebase(categoryKey) {
     if (!isFirebaseConnected || !firestoreDb) return;
     
-    firestoreDb.collection('arenas').doc(categoryKey).set({
+    // Clean all undefined values and sparse arrays to prevent Firestore validation errors
+    const payload = JSON.parse(JSON.stringify({
         scores: state.scores,
         fakeScores: state.fakeScores,
         maesiChecklist: state.maesiChecklist,
         updatedAt: Date.now()
-    }).then(() => {
+    }));
+    
+    firestoreDb.collection('arenas').doc(categoryKey).set(payload).then(() => {
         console.log(`Saved ${categoryKey} state to Firestore`);
     }).catch(err => {
         console.error("Firestore push error:", err);
@@ -3920,8 +3923,11 @@ function showPortal() {
     exitEditMode();
 }
 
-// Run app init
-window.addEventListener('DOMContentLoaded', init);
+if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
 
 function updateColorMode() {
     const isSaturday = state.activeCategory === 'saturday';
