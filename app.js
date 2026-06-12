@@ -1,4 +1,3 @@
-// App State Configuration
 const CONFIG = {
     storageKey: 'scoreboard_arena_scores',
     colorPresets: {
@@ -8,6 +7,16 @@ const CONFIG = {
         yellow: '#ffd600',
         purple: '#d600ff',
         orange: '#ff7b00'
+    },
+    // ใส่ข้อมูล Firebase Config ของคุณที่นี่เพื่อให้ทุกคนใช้งานซิงค์ร่วมกันโดยอัตโนมัติ
+    firebaseConfig: {
+        apiKey: "AIzaSyD7GME4n43Wc0pcjx5PJZwws_JdQHF_3MA",
+        authDomain: "robosport-28bd5.firebaseapp.com",
+        projectId: "robosport-28bd5",
+        storageBucket: "robosport-28bd5.firebasestorage.app",
+        messagingSenderId: "564334969959",
+        appId: "1:564334969959:web:e25935d47cd564d461c0c2",
+        measurementId: "G-89WJ65HPM9"
     }
 };
 
@@ -46,6 +55,12 @@ let state = {
     },
     activeMatchId: null
 };
+
+// Firebase global variables
+let firebaseApp = null;
+let firestoreDb = null;
+let firestoreUnsubscribe = null;
+let isFirebaseConnected = false;
 
 let clearMode = 'active_game'; // 'active_game' or 'all_games'
 
@@ -123,6 +138,7 @@ const DOM = {
 function init() {
     setupEventListeners();
     updateSheetsConnectionUI();
+    initFirebase();
     document.documentElement.style.setProperty('--selected-color-accent', state.selectedColor);
     showPortal();
 }
@@ -209,6 +225,9 @@ function saveData() {
     
     const maesiKey = `${CONFIG.storageKey}_${state.activeCategory}_maesi`;
     localStorage.setItem(maesiKey, JSON.stringify(state.maesiChecklist || {}));
+    
+    // Save to Firebase Firestore if connected
+    saveDataToFirebase(state.activeCategory);
 }
 
 // Update Google Sheets Status in header
@@ -222,6 +241,214 @@ function updateSheetsConnectionUI() {
         DOM.syncStatusText.textContent = 'เชื่อมต่อ Sheet';
         DOM.sheetsUrlInput.value = '';
     }
+}
+
+// Loose JSON parsing helper (supports single quotes, unquoted keys, trailing commas)
+function parseLooseJSON(str) {
+    str = str.trim();
+    try {
+        return JSON.parse(str);
+    } catch (e) {}
+    try {
+        let normalized = str
+            .replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":')
+            .replace(/'/g, '"')
+            .replace(/,\s*([}\]])/g, '$1');
+        return JSON.parse(normalized);
+    } catch (e) {
+        try {
+            const fn = new Function(`return (${str});`);
+            const res = fn();
+            if (res && typeof res === 'object') {
+                return res;
+            }
+        } catch (err) {}
+        throw new Error("Unable to parse config string");
+    }
+}
+
+// Initialize Firebase App
+function initFirebase() {
+    if (firestoreUnsubscribe) {
+        firestoreUnsubscribe();
+        firestoreUnsubscribe = null;
+    }
+    
+    // Check if Firebase is disabled by the user on this device
+    const isDisabled = localStorage.getItem('scoreboard_firebase_disabled') === 'true';
+    if (isDisabled) {
+        isFirebaseConnected = false;
+        updateFirebaseStatusUI();
+        return;
+    }
+    
+    let config = null;
+    const raw = localStorage.getItem('scoreboard_firebase_config');
+    if (raw) {
+        try {
+            config = JSON.parse(raw);
+            if (!config || !config.projectId) {
+                config = null;
+            }
+        } catch (e) {
+            console.error("Firebase config parse error from localStorage:", e);
+        }
+    }
+    
+    // Fallback to hardcoded CONFIG.firebaseConfig if projectId is defined
+    if (!config && CONFIG.firebaseConfig && CONFIG.firebaseConfig.projectId) {
+        config = CONFIG.firebaseConfig;
+    }
+    
+    if (!config || !config.projectId) {
+        isFirebaseConnected = false;
+        updateFirebaseStatusUI();
+        return;
+    }
+    
+    try {
+        if (firebase.apps.length > 0) {
+            firebase.apps[0].delete().then(() => {
+                initializeFirebaseApp(config);
+            }).catch(err => {
+                console.error("Error clearing Firebase instance:", err);
+                showToast("ไม่สามารถรีเซ็ตการเชื่อมต่อ Firebase", "error");
+            });
+        } else {
+            initializeFirebaseApp(config);
+        }
+    } catch (e) {
+        console.error("Firebase initialization error:", e);
+        isFirebaseConnected = false;
+        updateFirebaseStatusUI();
+    }
+}
+
+function initializeFirebaseApp(config) {
+    try {
+        firebaseApp = firebase.initializeApp(config);
+        firestoreDb = firebaseApp.firestore();
+        isFirebaseConnected = true;
+        updateFirebaseStatusUI();
+        
+        if (state.activeCategory) {
+            setupRealtimeSync(state.activeCategory);
+        }
+    } catch (e) {
+        console.error("Firebase startup failed:", e);
+        isFirebaseConnected = false;
+        updateFirebaseStatusUI();
+        showToast("เชื่อมต่อ Firebase ล้มเหลว: " + e.message, "error");
+    }
+}
+
+// Update Firebase synchronization statuses
+function updateFirebaseStatusUI() {
+    const statusDot = document.getElementById('firebase-status-dot');
+    const statusText = document.getElementById('firebase-status-text');
+    const syncStatusText = document.getElementById('sync-status-text');
+    
+    const hasLocalConfig = !!localStorage.getItem('scoreboard_firebase_config');
+    const isUsingDefault = isFirebaseConnected && !hasLocalConfig;
+    
+    if (isFirebaseConnected) {
+        if (statusDot) {
+            statusDot.style.background = 'var(--color-green)';
+            statusDot.parentElement.style.background = 'rgba(0, 255, 102, 0.1)';
+            statusDot.parentElement.style.color = 'var(--color-green)';
+            statusDot.parentElement.style.borderColor = 'rgba(0, 255, 102, 0.2)';
+        }
+        if (statusText) {
+            statusText.textContent = isUsingDefault 
+                ? 'เชื่อมต่ออัตโนมัติ (ผ่านค่าเริ่มต้นในระบบ)' 
+                : 'เชื่อมต่อแล้ว (ซิงค์เรียลไทม์)';
+        }
+        if (syncStatusText) syncStatusText.textContent = 'ซิงค์เรียลไทม์';
+        
+        if (DOM.sheetsConfigBtn) {
+            DOM.sheetsConfigBtn.classList.add('connected');
+            DOM.sheetsConfigBtn.style.boxShadow = '0 0 10px rgba(0, 240, 255, 0.3)';
+        }
+    } else {
+        if (statusDot) {
+            statusDot.style.background = 'var(--text-secondary)';
+            statusDot.parentElement.style.background = 'rgba(144, 141, 158, 0.1)';
+            statusDot.parentElement.style.color = 'var(--text-secondary)';
+            statusDot.parentElement.style.borderColor = 'rgba(144, 141, 158, 0.2)';
+        }
+        if (statusText) statusText.textContent = 'ปิดใช้งาน (ใช้ข้อมูลในเครื่อง)';
+        
+        updateSheetsConnectionUI();
+        if (DOM.sheetsConfigBtn && !state.sheetsUrl) {
+            DOM.sheetsConfigBtn.style.boxShadow = '';
+        }
+    }
+}
+
+// Real-time listener for Firestore document
+function setupRealtimeSync(categoryKey) {
+    if (!isFirebaseConnected || !firestoreDb) return;
+    
+    if (firestoreUnsubscribe) {
+        firestoreUnsubscribe();
+        firestoreUnsubscribe = null;
+    }
+    
+    const docRef = firestoreDb.collection('arenas').doc(categoryKey);
+    
+    firestoreUnsubscribe = docRef.onSnapshot((doc) => {
+        if (doc.exists) {
+            const data = doc.data();
+            
+            if (data.scores) state.scores = data.scores;
+            if (data.fakeScores) state.fakeScores = data.fakeScores;
+            if (data.maesiChecklist) state.maesiChecklist = data.maesiChecklist;
+            
+            // Mirror to LocalStorage cache
+            const key = `${CONFIG.storageKey}_${categoryKey}`;
+            localStorage.setItem(key, JSON.stringify(state.scores));
+            
+            const fakeKey = `${CONFIG.storageKey}_${categoryKey}_fakeScores`;
+            localStorage.setItem(fakeKey, JSON.stringify(state.fakeScores));
+            
+            const maesiKey = `${CONFIG.storageKey}_${categoryKey}_maesi`;
+            localStorage.setItem(maesiKey, JSON.stringify(state.maesiChecklist || {}));
+            
+            // Re-render interfaces
+            renderStats();
+            renderLeaderboard();
+            if (state.activeGame === "summary") {
+                renderSummaryChart();
+            } else if (state.activeGame === "maesi") {
+                renderMaesiPanel();
+            }
+            
+            updatePlayerNameDropdown();
+            updateMatchFormUI();
+            updatePoleFormUI();
+        } else {
+            console.log(`Initializing cloud document for ${categoryKey}...`);
+            saveDataToFirebase(categoryKey);
+        }
+    }, (error) => {
+        console.error("Firestore onSnapshot error:", error);
+    });
+}
+
+function saveDataToFirebase(categoryKey) {
+    if (!isFirebaseConnected || !firestoreDb) return;
+    
+    firestoreDb.collection('arenas').doc(categoryKey).set({
+        scores: state.scores,
+        fakeScores: state.fakeScores,
+        maesiChecklist: state.maesiChecklist,
+        updatedAt: Date.now()
+    }).then(() => {
+        console.log(`Saved ${categoryKey} state to Firestore`);
+    }).catch(err => {
+        console.error("Firestore push error:", err);
+        showToast("ไม่สามารถอัปเดตข้อมูลขึ้น Firebase", "error");
+    });
 }
 
 // Setup Event Listeners
@@ -305,8 +532,42 @@ function setupEventListeners() {
         DOM.confirmDialog.classList.remove('open');
     });
 
-    // Google Sheets Config Modal Triggers
+    // Connection Sync Config Modal Triggers
     DOM.sheetsConfigBtn.addEventListener('click', () => {
+        const sheetsUrl = localStorage.getItem('scoreboard_sheets_url') || "";
+        DOM.sheetsUrlInput.value = sheetsUrl;
+        
+        let firebaseRaw = localStorage.getItem('scoreboard_firebase_config') || "";
+        // Pre-populate with hardcoded CONFIG.firebaseConfig if active and not explicitly disabled
+        if (!firebaseRaw && CONFIG.firebaseConfig && CONFIG.firebaseConfig.projectId && localStorage.getItem('scoreboard_firebase_disabled') !== 'true') {
+            firebaseRaw = JSON.stringify(CONFIG.firebaseConfig, null, 2);
+        }
+        
+        const configTextarea = document.getElementById('firebase-config-json');
+        if (configTextarea) {
+            if (firebaseRaw) {
+                try {
+                    configTextarea.value = JSON.stringify(JSON.parse(firebaseRaw), null, 2);
+                } catch(e) {
+                    configTextarea.value = firebaseRaw;
+                }
+            } else {
+                configTextarea.value = "";
+            }
+        }
+        
+        const btnTabFirebase = document.getElementById('btn-sync-tab-firebase');
+        const btnTabSheets = document.getElementById('btn-sync-tab-sheets');
+        const tabContentFirebase = document.getElementById('sync-tab-content-firebase');
+        const tabContentSheets = document.getElementById('sync-tab-content-sheets');
+        if (btnTabFirebase && btnTabSheets && tabContentFirebase && tabContentSheets) {
+            btnTabFirebase.classList.add('active');
+            btnTabSheets.classList.remove('active');
+            tabContentFirebase.style.display = 'flex';
+            tabContentSheets.style.display = 'none';
+        }
+        
+        updateFirebaseStatusUI();
         DOM.sheetsModal.classList.add('open');
     });
 
@@ -320,18 +581,51 @@ function setupEventListeners() {
 
     DOM.sheetsSaveBtn.addEventListener('click', () => {
         const url = DOM.sheetsUrlInput.value.trim();
+        const firebaseRaw = document.getElementById('firebase-config-json')?.value.trim() || "";
+        
+        // Validate and Save Sheets
         if (url === "") {
             state.sheetsUrl = "";
             localStorage.removeItem('scoreboard_sheets_url');
-            showToast("ยกเลิกการเชื่อมต่อ Google Sheets", "info");
         } else if (url.startsWith('https://script.google.com/')) {
             state.sheetsUrl = url;
             localStorage.setItem('scoreboard_sheets_url', url);
-            showToast("เชื่อมต่อ Google Sheets สำเร็จ!", "success");
         } else {
-            showToast("URL เว็บแอปไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง", "error");
+            showToast("URL เว็บแอป Google Sheets ไม่ถูกต้อง", "error");
             return;
         }
+        
+        // Validate and Save Firebase
+        if (firebaseRaw === "") {
+            localStorage.removeItem('scoreboard_firebase_config');
+            localStorage.setItem('scoreboard_firebase_disabled', 'true'); // Explicitly disable Firebase sync
+            if (isFirebaseConnected) {
+                isFirebaseConnected = false;
+                if (firestoreUnsubscribe) {
+                    firestoreUnsubscribe();
+                    firestoreUnsubscribe = null;
+                }
+                updateFirebaseStatusUI();
+                showToast("ยกเลิกการเชื่อมต่อ Firebase", "info");
+                loadData();
+                renderStats();
+                renderLeaderboard();
+            }
+        } else {
+            try {
+                const parsed = parseLooseJSON(firebaseRaw);
+                if (!parsed || typeof parsed !== 'object' || !parsed.projectId) {
+                    throw new Error("ต้องมี projectId ในการกำหนดค่า");
+                }
+                localStorage.setItem('scoreboard_firebase_config', JSON.stringify(parsed));
+                localStorage.removeItem('scoreboard_firebase_disabled'); // Re-enable Firebase
+                initFirebase();
+            } catch (e) {
+                showToast("รูปแบบ Firebase Config ไม่ถูกต้อง: " + e.message, "error");
+                return;
+            }
+        }
+        
         updateSheetsConnectionUI();
         DOM.sheetsModal.classList.remove('open');
     });
@@ -652,6 +946,54 @@ function setupEventListeners() {
                 }
                 state.maesiChecklist[player][game] = isChecked;
                 saveData();
+            }
+        });
+    }
+
+    // Tab switching inside Sync Settings Modal
+    const btnTabFirebase = document.getElementById('btn-sync-tab-firebase');
+    const btnTabSheets = document.getElementById('btn-sync-tab-sheets');
+    const tabContentFirebase = document.getElementById('sync-tab-content-firebase');
+    const tabContentSheets = document.getElementById('sync-tab-content-sheets');
+    
+    if (btnTabFirebase && btnTabSheets && tabContentFirebase && tabContentSheets) {
+        btnTabFirebase.addEventListener('click', () => {
+            btnTabFirebase.classList.add('active');
+            btnTabSheets.classList.remove('active');
+            tabContentFirebase.style.display = 'flex';
+            tabContentSheets.style.display = 'none';
+        });
+        
+        btnTabSheets.addEventListener('click', () => {
+            btnTabSheets.classList.add('active');
+            btnTabFirebase.classList.remove('active');
+            tabContentSheets.style.display = 'flex';
+            tabContentFirebase.style.display = 'none';
+        });
+    }
+
+    // Firebase clear config action
+    const firebaseClearBtn = document.getElementById('firebase-clear-btn');
+    if (firebaseClearBtn) {
+        firebaseClearBtn.addEventListener('click', () => {
+            if (confirm('คุณแน่ใจหรือไม่ว่าต้องการล้างการเชื่อมต่อ Firebase? ระบบจะกลับไปใช้ข้อมูลในเครื่องแทน')) {
+                localStorage.removeItem('scoreboard_firebase_config');
+                localStorage.setItem('scoreboard_firebase_disabled', 'true'); // Temporarily disable Firebase sync
+                const configTextarea = document.getElementById('firebase-config-json');
+                if (configTextarea) configTextarea.value = '';
+                
+                if (isFirebaseConnected) {
+                    isFirebaseConnected = false;
+                    if (firestoreUnsubscribe) {
+                        firestoreUnsubscribe();
+                        firestoreUnsubscribe = null;
+                    }
+                    updateFirebaseStatusUI();
+                    showToast("ยกเลิกการเชื่อมต่อ Firebase เรียบร้อย", "info");
+                    loadData();
+                    renderStats();
+                    renderLeaderboard();
+                }
             }
         });
     }
@@ -3521,6 +3863,11 @@ function selectCategory(categoryKey) {
     // Load scores for this category
     loadData();
     
+    // If Firebase is active, setup real-time listener
+    if (isFirebaseConnected) {
+        setupRealtimeSync(categoryKey);
+    }
+    
     // Update Header Badge
     DOM.headerCategoryName.textContent = CATEGORY_NAMES[categoryKey] || categoryKey;
     
@@ -3538,6 +3885,12 @@ function selectCategory(categoryKey) {
 
 function showPortal() {
     state.activeCategory = null;
+    
+    // Unsubscribe from Firestore snapshot listener
+    if (firestoreUnsubscribe) {
+        firestoreUnsubscribe();
+        firestoreUnsubscribe = null;
+    }
     
     // Toggle Maesi tab visibility
     const maesiTab = document.getElementById('tab-game-maesi');
