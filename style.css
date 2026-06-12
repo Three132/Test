@@ -1703,6 +1703,10 @@ input[type="number"]:focus {
     margin-bottom: 2vh;
 }
 
+#summary-panel.presentation-mode .summary-actions {
+    display: none !important;
+}
+
 #summary-panel.presentation-mode .panel-title {
     font-size: 2.6rem;
 }
