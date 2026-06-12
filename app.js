@@ -3872,7 +3872,7 @@ function selectCategory(categoryKey) {
     // Toggle Maesi tab visibility
     const maesiTab = document.getElementById('tab-game-maesi');
     if (maesiTab) {
-        maesiTab.style.display = categoryKey === 'sunday_small' ? 'flex' : 'none';
+        maesiTab.style.display = (categoryKey === 'sunday_small' || categoryKey === 'sunday_big') ? 'flex' : 'none';
     }
 
     updateColorMode();
@@ -4006,17 +4006,17 @@ function renderMaesiPanel() {
     
     grid.innerHTML = '';
     
-    // We only support sunday_small for now (as requested by user)
-    if (state.activeCategory !== 'sunday_small') {
-        grid.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;"><p style="font-weight: 500; font-size: 1.1rem;">ระบบเช็คชื่อแม่สีเปิดใช้งานสำหรับหมวดหมู่วันอาทิตย์ เด็กเล็ก เท่านั้น</p></div>';
+    if (state.activeCategory !== 'sunday_small' && state.activeCategory !== 'sunday_big') {
+        grid.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;"><p style="font-weight: 500; font-size: 1.1rem;">ระบบเช็คชื่อแม่สีเปิดใช้งานสำหรับหมวดหมู่วันอาทิตย์เท่านั้น</p></div>';
         return;
     }
     
+    const cat = state.activeCategory;
     const colors = [
-        { name: 'สีน้ำเงิน (ฟ้า)', hex: '#00f0ff', players: COLOR_SUGGESTIONS['sunday_small']['#00f0ff'] },
-        { name: 'สีแดง', hex: '#ff4b5c', players: COLOR_SUGGESTIONS['sunday_small']['#ff4b5c'] },
-        { name: 'สีเหลือง', hex: '#ffd600', players: COLOR_SUGGESTIONS['sunday_small']['#ffd600'] },
-        { name: 'สีเขียว', hex: '#00ff66', players: COLOR_SUGGESTIONS['sunday_small']['#00ff66'] }
+        { name: 'สีน้ำเงิน (ฟ้า)', hex: '#00f0ff', players: (COLOR_SUGGESTIONS[cat] && COLOR_SUGGESTIONS[cat]['#00f0ff']) || [] },
+        { name: 'สีแดง', hex: '#ff4b5c', players: (COLOR_SUGGESTIONS[cat] && COLOR_SUGGESTIONS[cat]['#ff4b5c']) || [] },
+        { name: 'สีเหลือง', hex: '#ffd600', players: (COLOR_SUGGESTIONS[cat] && COLOR_SUGGESTIONS[cat]['#ffd600']) || [] },
+        { name: 'สีเขียว', hex: '#00ff66', players: (COLOR_SUGGESTIONS[cat] && COLOR_SUGGESTIONS[cat]['#00ff66']) || [] }
     ];
     
     colors.forEach(color => {
