@@ -2120,12 +2120,12 @@ function syncFishingToGoogleSheet(round) {
 // Pre-configured matches for Saturday (วันเสาร์)
 const SATURDAY_MATCHES = {
     "1": [
-        { "id": 1, "round": 1, "type": "individual", "teamA": "#ff4b5c", "playerA": "ปกป้อง2", "teamB": "#00f0ff", "playerB": "เต็นท์" },
-        { "id": 2, "round": 1, "type": "individual", "teamA": "#ff4b5c", "playerA": "กรรณ", "teamB": "#00f0ff", "playerB": "เมทัล" },
+        { "id": 1, "round": 1, "type": "individual", "teamA": "#ff4b5c", "playerA": "กรรณ", "teamB": "#00f0ff", "playerB": "เมทัล" },
+        { "id": 2, "round": 1, "type": "individual", "teamA": "#ff4b5c", "playerA": "ธีร์", "teamB": "#00f0ff", "playerB": "เจเจ" },
         { "id": 3, "round": 1, "type": "individual", "teamA": "#ff4b5c", "playerA": "ธีร์", "teamB": "#00f0ff", "playerB": "เจเจ" },
-        { "id": 4, "round": 2, "type": "individual", "teamA": "#ff4b5c", "playerA": "เรสซิ่ง", "teamB": "#00f0ff", "playerB": "ดาวา" },
-        { "id": 5, "round": 2, "type": "individual", "teamA": "#ff4b5c", "playerA": "ไดโน่", "teamB": "#00f0ff", "playerB": "อันดา" },
-        { "id": 6, "round": 2, "type": "individual", "teamA": "#ff4b5c", "playerA": "ข้าวปั้น", "teamB": "#00f0ff", "playerB": "อายชิลด์" }
+        { "id": 4, "round": 2, "type": "individual", "teamA": "#ff4b5c", "playerA": "ไดโน่", "teamB": "#00f0ff", "playerB": "อันดา" },
+        { "id": 5, "round": 2, "type": "individual", "teamA": "#ff4b5c", "playerA": "ข้าวปั้น", "teamB": "#00f0ff", "playerB": "อายชิลด์" },
+        { "id": 6, "round": 1, "type": "individual", "teamA": "#ff4b5c", "playerA": "ปกป้อง2", "teamB": "#00f0ff", "playerB": "เต็นท์" },
     ],
     "2": [
         { "id": 1, "round": 1, "type": "individual", "teamA": "#ff4b5c", "playerA": "ปกป้อง2", "teamB": "#00f0ff", "playerB": "เมทัล" },
@@ -2138,8 +2138,8 @@ const SATURDAY_MATCHES = {
     "3": [
         { "id": 1, "round": 1, "type": "individual", "teamA": "#ff4b5c", "playerA": "ปกป้อง2", "teamB": "#00f0ff", "playerB": "เจเจ" },
         { "id": 2, "round": 1, "type": "individual", "teamA": "#ff4b5c", "playerA": "กรรณ", "teamB": "#00f0ff", "playerB": "เต็นท์" },
-        { "id": 3, "round": 1, "type": "individual", "teamA": "#ff4b5c", "playerA": "ธีร์", "teamB": "#00f0ff", "playerB": "เมทัล" },
-        { "id": 4, "round": 2, "type": "individual", "teamA": "#ff4b5c", "playerA": "ข้าวปั้น", "teamB": "#00f0ff", "playerB": "ดาวา" },
+        { "id": 3, "round": 2, "type": "individual", "teamA": "#ff4b5c", "playerA": "ข้าวปั้น", "teamB": "#00f0ff", "playerB": "ดาวา" },
+        { "id": 4, "round": 1, "type": "individual", "teamA": "#ff4b5c", "playerA": "ธีร์", "teamB": "#00f0ff", "playerB": "เมทัล" },
         { "id": 5, "round": 2, "type": "individual", "teamA": "#ff4b5c", "playerA": "กันย์", "teamB": "#00f0ff", "playerB": "อันดา" },
         { "id": 6, "round": 2, "type": "individual", "teamA": "#ff4b5c", "playerA": "เรสซิ่ง", "teamB": "#00f0ff", "playerB": "อายชิลด์" }
     ],
