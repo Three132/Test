@@ -649,9 +649,70 @@ function setupEventListeners() {
     DOM.portalCards.forEach(card => {
         card.addEventListener('click', () => {
             const categoryKey = card.getAttribute('data-category');
-            selectCategory(categoryKey);
+            if (categoryKey === 'final_score') {
+                const modal = document.getElementById('final-score-modal');
+                if (modal) modal.classList.add('open');
+            } else {
+                selectCategory(categoryKey);
+            }
         });
     });
+
+    // FinalScore Modal Control & Selection listeners
+    const finalScoreModal = document.getElementById('final-score-modal');
+    const finalModalClose = document.getElementById('final-modal-close');
+    const finalModalCancel = document.getElementById('final-modal-cancel');
+    
+    const closeFinalModal = () => {
+        if (finalScoreModal) finalScoreModal.classList.remove('open');
+    };
+    
+    if (finalModalClose) finalModalClose.addEventListener('click', closeFinalModal);
+    if (finalModalCancel) finalModalCancel.addEventListener('click', closeFinalModal);
+    
+    const handleFinalCategorySelect = (categoryKey) => {
+        closeFinalModal();
+        
+        // 1. Select the category
+        selectCategory(categoryKey);
+        
+        // 2. Set active game tab to "summary"
+        setActiveGame('summary');
+        
+        // 3. Show the curtains overlay immediately
+        const overlay = document.getElementById('curtain-overlay');
+        if (overlay) {
+            overlay.style.display = 'block';
+            overlay.classList.remove('open');
+        }
+        const startRevealBtn = document.getElementById('start-reveal-btn');
+        if (startRevealBtn) {
+            startRevealBtn.disabled = false;
+        }
+        
+        // 4. Request full screen automatically (Presentation Mode)
+        setTimeout(() => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.error("Error attempting to enable full-screen mode on Final Score select:", err);
+                });
+            }
+        }, 100);
+    };
+    
+    const finalSelectSat = document.getElementById('final-select-sat');
+    const finalSelectSunSmall = document.getElementById('final-select-sun-small');
+    const finalSelectSunBig = document.getElementById('final-select-sun-big');
+    
+    if (finalSelectSat) {
+        finalSelectSat.addEventListener('click', () => handleFinalCategorySelect('saturday'));
+    }
+    if (finalSelectSunSmall) {
+        finalSelectSunSmall.addEventListener('click', () => handleFinalCategorySelect('sunday_small'));
+    }
+    if (finalSelectSunBig) {
+        finalSelectSunBig.addEventListener('click', () => handleFinalCategorySelect('sunday_big'));
+    }
 
     // Back to Portal Button
     DOM.backPortalBtn.addEventListener('click', () => {
@@ -680,6 +741,30 @@ function setupEventListeners() {
             `;
         }
     });
+
+    // Final Mode (Suspense Reveal) triggers
+    const finalModeBtn = document.getElementById('final-mode-btn');
+    if (finalModeBtn) {
+        finalModeBtn.addEventListener('click', () => {
+            const overlay = document.getElementById('curtain-overlay');
+            if (overlay) {
+                overlay.style.display = 'block';
+                overlay.classList.remove('open');
+            }
+            const startRevealBtn = document.getElementById('start-reveal-btn');
+            if (startRevealBtn) {
+                startRevealBtn.disabled = false;
+            }
+        });
+    }
+
+    const startRevealBtn = document.getElementById('start-reveal-btn');
+    if (startRevealBtn) {
+        startRevealBtn.addEventListener('click', () => {
+            AudioFX.init();
+            startFinalReveal();
+        });
+    }
 
     // Objects hit selector for Game 1 Sunday Small (เด็กเล็ก)
     document.querySelectorAll('#objects-hit-group .objects-selector button').forEach(btn => {
@@ -3743,7 +3828,42 @@ function renderSummaryChart() {
         column.innerHTML = `
             <div class="summary-score-value" style="color: ${color.hex};">0</div>
             <div class="summary-bar-track-vertical">
-                <div class="summary-bar-fill-vertical" style="height: 0%; background-color: ${color.hex};"></div>
+                <!-- Pulley wheel -->
+                <div class="summary-pulley">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="${color.hex}" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <circle cx="12" cy="12" r="3" fill="${color.hex}" />
+                        <path d="M12 2v20M2 12h20M5 5l14 14M5 19L19 5" />
+                    </svg>
+                </div>
+                
+                <!-- Left rope (Load rope) -->
+                <div class="summary-bar-rope-left" style="height: 100%;"></div>
+                
+                <!-- Bar fill -->
+                <div class="summary-bar-fill-vertical" style="height: 0%; background-color: ${color.hex};">
+                    <div class="summary-bar-hook">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="${color.hex}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="7" r="4" fill="rgba(0,0,0,0.6)" />
+                            <path d="M12 11v8" />
+                            <rect x="9" y="15" width="6" height="4" rx="1" fill="${color.hex}" />
+                        </svg>
+                    </div>
+                </div>
+                
+                <!-- Right rope (Pull rope) -->
+                <div class="summary-bar-rope-right" style="height: 20%;"></div>
+                
+                <!-- Worker/Person silhouette pulling the rope -->
+                <div class="summary-puller" style="color: ${color.hex}80;">
+                    <svg viewBox="0 0 64 64" fill="currentColor">
+                        <circle cx="22" cy="14" r="4" />
+                        <path d="M22 20c-3 0-5 5-4 10l5 15h4l-4-15c1-3 0-8-1-10z" />
+                        <path d="M23 45l-8 15h5l7-12 1 12h5l-2-15z" />
+                        <path d="M21 23l16 -6l1 2l-16 6z" />
+                        <path d="M21 26l16 2l0-2l-16 -2z" />
+                    </svg>
+                </div>
             </div>
             <div class="summary-color-label">
                 <span class="summary-color-dot" style="background-color: ${color.hex}; box-shadow: 0 0 10px ${color.hex}a0;"></span>
@@ -3756,9 +3876,33 @@ function renderSummaryChart() {
         // Trigger height transition and number count-up animation
         setTimeout(() => {
             const fill = column.querySelector('.summary-bar-fill-vertical');
+            const ropeLeft = column.querySelector('.summary-bar-rope-left');
+            const ropeRight = column.querySelector('.summary-bar-rope-right');
+            const pulley = column.querySelector('.summary-pulley');
+            const puller = column.querySelector('.summary-puller');
+            
+            const easing = 'height 3s cubic-bezier(0.15, 0.85, 0.3, 1)';
+            
             if (fill) {
-                fill.style.transition = 'height 3s cubic-bezier(0.15, 0.85, 0.3, 1)';
+                fill.style.transition = easing;
                 fill.style.height = `${percentage}%`;
+            }
+            if (ropeLeft) {
+                ropeLeft.style.transition = easing;
+                ropeLeft.style.height = `${100 - percentage}%`;
+            }
+            if (ropeRight) {
+                ropeRight.style.transition = easing;
+                ropeRight.style.height = `${20 + percentage * 0.8}%`;
+            }
+            if (pulley) {
+                pulley.style.transform = `translateX(-50%) rotate(${percentage * 3.6}deg)`;
+            }
+            if (puller && percentage > 0) {
+                puller.classList.add('pulling');
+                setTimeout(() => {
+                    puller.classList.remove('pulling');
+                }, 3000);
             }
             
             const valEl = column.querySelector('.summary-score-value');
@@ -3806,6 +3950,184 @@ function togglePresentationMode() {
     } else {
         document.exitFullscreen();
     }
+}
+
+function startFinalReveal() {
+    const overlay = document.getElementById('curtain-overlay');
+    if (!overlay) return;
+    
+    // Add open class to slide curtains left and right
+    overlay.classList.add('open');
+    
+    // Disable click events on overlay button
+    const startRevealBtn = document.getElementById('start-reveal-btn');
+    if (startRevealBtn) startRevealBtn.disabled = true;
+    
+    const totals = calculateColorTotals();
+    const hexToName = {
+        '#00f0ff': 'ทีมสีน้ำเงิน',
+        '#ff4b5c': 'ทีมสีแดง',
+        '#ffd600': 'ทีมสีเหลือง',
+        '#00ff66': 'ทีมสีเขียว'
+    };
+    
+    const activeHexes = state.activeCategory === 'saturday'
+        ? ['#00f0ff', '#ff4b5c']
+        : ['#00f0ff', '#ff4b5c', '#ffd600', '#00ff66'];
+        
+    // Staggered reveal list: sorted from lowest score to highest score (ascending)
+    const revealList = activeHexes.map(hex => ({
+        hex: hex,
+        name: hexToName[hex] || 'ทีมสีนิรนาม',
+        score: totals[hex] || 0
+    })).sort((a, b) => a.score - b.score);
+    
+    const maxScore = Math.max(...revealList.map(c => c.score));
+    
+    // Play suspense tick roll
+    const totalRevealTime = 2000 + revealList.length * 2000;
+    AudioFX.playSuspense(totalRevealTime);
+
+    // Render columns in standard left-to-right order (Blue, Red, Yellow, Green)
+    const defaultOrder = ['#00f0ff', '#ff4b5c', '#ffd600', '#00ff66'].filter(hex => activeHexes.includes(hex));
+    
+    DOM.summaryChartContainer.innerHTML = '';
+    
+    const colMap = {};
+    
+    defaultOrder.forEach(hex => {
+        const score = totals[hex] || 0;
+        const name = hexToName[hex] || 'ทีมสีนิรนาม';
+        const column = document.createElement('div');
+        column.className = 'summary-chart-column';
+        column.innerHTML = `
+            <div class="summary-score-value" style="color: ${hex};">0</div>
+            <div class="summary-bar-track-vertical">
+                <!-- Pulley wheel -->
+                <div class="summary-pulley">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="${hex}" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <circle cx="12" cy="12" r="3" fill="${hex}" />
+                        <path d="M12 2v20M2 12h20M5 5l14 14M5 19L19 5" />
+                    </svg>
+                </div>
+                
+                <!-- Left rope (Load rope) -->
+                <div class="summary-bar-rope-left" style="height: 100%;"></div>
+                
+                <!-- Bar fill -->
+                <div class="summary-bar-fill-vertical" style="height: 0%; background-color: ${hex};">
+                    <div class="summary-bar-hook">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="${hex}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="7" r="4" fill="rgba(0,0,0,0.6)" />
+                            <path d="M12 11v8" />
+                            <rect x="9" y="15" width="6" height="4" rx="1" fill="${hex}" />
+                        </svg>
+                    </div>
+                </div>
+                
+                <!-- Right rope (Pull rope) -->
+                <div class="summary-bar-rope-right" style="height: 20%;"></div>
+                
+                <!-- Worker/Person silhouette pulling the rope -->
+                <div class="summary-puller" style="color: ${hex}80;">
+                    <svg viewBox="0 0 64 64" fill="currentColor">
+                        <circle cx="22" cy="14" r="4" />
+                        <path d="M22 20c-3 0-5 5-4 10l5 15h4l-4-15c1-3 0-8-1-10z" />
+                        <path d="M23 45l-8 15h5l7-12 1 12h5l-2-15z" />
+                        <path d="M21 23l16 -6l1 2l-16 6z" />
+                        <path d="M21 26l16 2l0-2l-16 -2z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="summary-color-label">
+                <span class="summary-color-dot" style="background-color: ${hex}; box-shadow: 0 0 10px ${hex}a0;"></span>
+                <span>${name}</span>
+            </div>
+        `;
+        DOM.summaryChartContainer.appendChild(column);
+        colMap[hex] = column;
+    });
+    
+    // Wait for curtains to slide open (1.5 seconds)
+    setTimeout(() => {
+        // Start all ropes, pulleys, and numbers randomizing
+        revealList.forEach((item, index) => {
+            const column = colMap[item.hex];
+            if (!column) return;
+            
+            const fill = column.querySelector('.summary-bar-fill-vertical');
+            const ropeLeft = column.querySelector('.summary-bar-rope-left');
+            const ropeRight = column.querySelector('.summary-bar-rope-right');
+            const pulley = column.querySelector('.summary-pulley');
+            const puller = column.querySelector('.summary-puller');
+            const valEl = column.querySelector('.summary-score-value');
+            
+            // Start rapid randomization
+            let interval = setInterval(() => {
+                valEl.textContent = formatNumber(Math.floor(Math.random() * Math.max(item.score * 1.5, 50)));
+            }, 50);
+            
+            if (puller) puller.classList.add('pulling');
+            
+            // Settle this column after a staggered delay
+            const settleDelay = 2000 + index * 2000;
+            
+            setTimeout(() => {
+                clearInterval(interval);
+                
+                const percentage = maxScore > 0 ? (item.score / maxScore) * 100 : 0;
+                const easing = 'height 2.5s cubic-bezier(0.15, 0.85, 0.3, 1)';
+                
+                if (fill) {
+                    fill.style.transition = easing;
+                    fill.style.height = `${percentage}%`;
+                }
+                if (ropeLeft) {
+                    ropeLeft.style.transition = easing;
+                    ropeLeft.style.height = `${100 - percentage}%`;
+                }
+                if (ropeRight) {
+                    ropeRight.style.transition = easing;
+                    ropeRight.style.height = `${20 + percentage * 0.8}%`;
+                }
+                if (pulley) {
+                    pulley.style.transform = `translateX(-50%) rotate(${percentage * 3.6}deg)`;
+                }
+                
+                // Animate final numbers settling
+                animateNumber(valEl, 0, item.score, 2500);
+                
+                // Trigger glow/bounce class on column
+                column.classList.add('settled');
+                
+                // Play settle chime
+                AudioFX.playSettle();
+                
+                // Winner revealed! Trigger fireworks & applause
+                if (index === revealList.length - 1) {
+                    setTimeout(() => {
+                        Fireworks.start();
+                        AudioFX.playApplause();
+                        
+                        setTimeout(() => {
+                            Fireworks.stop();
+                        }, 8000);
+                    }, 1000);
+                }
+                
+                setTimeout(() => {
+                    if (puller) puller.classList.remove('pulling');
+                }, 2500);
+            }, settleDelay);
+        });
+        
+        // Hide the curtain overlay completely after all reveals are finished
+        const totalRevealDuration = 2000 + revealList.length * 2000 + 3000;
+        setTimeout(() => {
+            overlay.style.display = 'none';
+        }, totalRevealDuration);
+    }, 1500);
 }
 
 
@@ -4079,4 +4401,408 @@ function renderMaesiPanel() {
         
         grid.appendChild(card);
     });
+}
+
+/* ==========================================================================
+   WEB AUDIO API SYNTHESIZED SOUND EFFECTS (Drumroll, Chimes, Explosions, Claps)
+   ========================================================================== */
+const AudioFX = {
+    ctx: null,
+    
+    init() {
+        if (!this.ctx) {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+    },
+    
+    // Play a suspenseful ticking/rumble sound
+    playSuspense(durationMs) {
+        this.init();
+        const ctx = this.ctx;
+        
+        // Low rumble oscillator
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(60, ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(120, ctx.currentTime + durationMs / 1000);
+        
+        gainNode.gain.setValueAtTime(0.12, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + durationMs / 1000);
+        
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        osc.start();
+        osc.stop(ctx.currentTime + durationMs / 1000);
+        
+        // Fast repeating ticks for tension
+        let startTime = ctx.currentTime;
+        let endTime = startTime + durationMs / 1000;
+        let tickInterval = 0.15; // start with 150ms
+        
+        function scheduleTick(time, interval) {
+            if (time >= endTime) return;
+            
+            const tickOsc = ctx.createOscillator();
+            const tickGain = ctx.createGain();
+            
+            tickOsc.type = 'sine';
+            tickOsc.frequency.setValueAtTime(800, time);
+            tickOsc.frequency.exponentialRampToValueAtTime(100, time + 0.05);
+            
+            tickGain.gain.setValueAtTime(0.06, time);
+            tickGain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+            
+            tickOsc.connect(tickGain);
+            tickGain.connect(ctx.destination);
+            
+            tickOsc.start(time);
+            tickOsc.stop(time + 0.06);
+            
+            // Speed up ticks as time progresses
+            const progress = (time - startTime) / (endTime - startTime);
+            const nextInterval = Math.max(0.035, interval * (1 - progress * 0.45));
+            
+            setTimeout(() => {
+                scheduleTick(ctx.currentTime, nextInterval);
+            }, nextInterval * 1000);
+        }
+        
+        scheduleTick(startTime, tickInterval);
+    },
+    
+    // Play a celebratory chime when a column settles
+    playSettle() {
+        this.init();
+        const ctx = this.ctx;
+        const now = ctx.currentTime;
+        
+        // Chime sweep (major arpeggio notes)
+        const notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
+        notes.forEach((freq, index) => {
+            const time = now + index * 0.08;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, time);
+            
+            gain.gain.setValueAtTime(0.1, time);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + 0.35);
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            
+            osc.start(time);
+            osc.stop(time + 0.4);
+        });
+    },
+    
+    // Play explosion sound for fireworks
+    playExplosion() {
+        this.init();
+        const ctx = this.ctx;
+        const now = ctx.currentTime;
+        
+        // Create noise buffer
+        const bufferSize = ctx.sampleRate * 1.5; // 1.5s duration
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+        
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+        
+        // Filter the noise to sound like a low rumble explosion
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(1000, now);
+        filter.frequency.exponentialRampToValueAtTime(10, now + 1.2);
+        
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+        
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        
+        noise.start(now);
+        
+        // Crackle tail sound (sparks popping)
+        for (let i = 0; i < 8; i++) {
+            const crackleTime = now + 0.1 + Math.random() * 0.8;
+            const osc = ctx.createOscillator();
+            const cg = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(3000 + Math.random() * 2000, crackleTime);
+            
+            cg.gain.setValueAtTime(0.02, crackleTime);
+            cg.gain.exponentialRampToValueAtTime(0.001, crackleTime + 0.05);
+            
+            osc.connect(cg);
+            cg.connect(ctx.destination);
+            osc.start(crackleTime);
+            osc.stop(crackleTime + 0.06);
+        }
+    },
+    
+    // Play crowd applause and cheering
+    playApplause() {
+        this.init();
+        const ctx = this.ctx;
+        const now = ctx.currentTime;
+        
+        // Create noise buffer for applause
+        const bufferSize = ctx.sampleRate * 5; // 5 seconds duration
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        
+        // Generate filtered clapping impulses
+        for (let i = 0; i < bufferSize; i++) {
+            let val = Math.random() * 2 - 1;
+            const timeInSec = i / ctx.sampleRate;
+            const clapDensity = Math.sin(timeInSec * Math.PI / 5); // envelope
+            if (Math.random() < 0.12 * clapDensity) {
+                val += (Math.random() * 2 - 1) * 2;
+            }
+            data[i] = val;
+        }
+        
+        const applause = ctx.createBufferSource();
+        applause.buffer = buffer;
+        
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(1000, now);
+        filter.Q.setValueAtTime(1.5, now);
+        
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.01, now);
+        gain.gain.linearRampToValueAtTime(0.16, now + 0.5);
+        gain.gain.linearRampToValueAtTime(0.12, now + 3.5);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 5.0);
+        
+        applause.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        
+        applause.start(now);
+        
+        // Cheering synthesized tone
+        const osc = ctx.createOscillator();
+        const oscGain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.linearRampToValueAtTime(210, now + 0.8);
+        osc.frequency.linearRampToValueAtTime(180, now + 2.5);
+        
+        const cheerFilter = ctx.createBiquadFilter();
+        cheerFilter.type = 'lowpass';
+        cheerFilter.frequency.setValueAtTime(400, now);
+        
+        oscGain.gain.setValueAtTime(0.01, now);
+        oscGain.gain.linearRampToValueAtTime(0.03, now + 0.6);
+        oscGain.gain.linearRampToValueAtTime(0.015, now + 3.0);
+        oscGain.gain.exponentialRampToValueAtTime(0.001, now + 4.8);
+        
+        osc.connect(cheerFilter);
+        cheerFilter.connect(oscGain);
+        oscGain.connect(ctx.destination);
+        
+        osc.start(now);
+        osc.stop(now + 5.0);
+    }
+};
+
+/* ==========================================================================
+   CANVAS FIREWORKS SYSTEM
+   ========================================================================== */
+const Fireworks = {
+    canvas: null,
+    ctx: null,
+    particles: [],
+    animationId: null,
+    running: false,
+    launchInterval: null,
+    
+    init() {
+        this.canvas = document.getElementById('fireworks-canvas');
+        if (!this.canvas) return;
+        this.ctx = this.canvas.getContext('2d');
+        this.resize();
+    },
+    
+    resize() {
+        if (!this.canvas) return;
+        const rect = this.canvas.getBoundingClientRect();
+        this.canvas.width = rect.width;
+        this.canvas.height = rect.height;
+    },
+    
+    start() {
+        if (this.running) return;
+        this.init();
+        this.running = true;
+        this.particles = [];
+        this.loop();
+        
+        // Periodically launch fireworks
+        this.launchInterval = setInterval(() => {
+            if (this.running) {
+                this.launch();
+            }
+        }, 850);
+        
+        // Launch initial ones immediately
+        for (let i = 0; i < 3; i++) {
+            setTimeout(() => this.launch(), i * 400);
+        }
+    },
+    
+    stop() {
+        this.running = false;
+        clearInterval(this.launchInterval);
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+        }
+        if (this.ctx && this.canvas) {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+    },
+    
+    launch() {
+        if (!this.canvas) return;
+        const startX = Math.random() * this.canvas.width;
+        const startY = this.canvas.height;
+        const targetX = Math.random() * this.canvas.width;
+        const targetY = Math.random() * (this.canvas.height * 0.55); // Upper section
+        
+        this.particles.push(new Rocket(startX, startY, targetX, targetY));
+    },
+    
+    loop() {
+        if (!this.running) return;
+        
+        const ctx = this.ctx;
+        const width = this.canvas.width;
+        const height = this.canvas.height;
+        
+        // Draw path trails
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+        ctx.globalCompositeOperation = 'copy';
+        ctx.fillRect(0, 0, width, height);
+        ctx.globalCompositeOperation = 'screen';
+        
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const p = this.particles[i];
+            p.update();
+            p.draw(ctx);
+            if (p.isDead) {
+                if (p.type === 'rocket') {
+                    this.explode(p.x, p.y);
+                }
+                this.particles.splice(i, 1);
+            }
+        }
+        
+        this.animationId = requestAnimationFrame(() => this.loop());
+    },
+    
+    explode(x, y) {
+        const colors = ['#00f0ff', '#ff4b5c', '#ffd600', '#00ff66', '#d600ff', '#ff7b00'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const count = 50 + Math.floor(Math.random() * 30);
+        
+        for (let i = 0; i < count; i++) {
+            this.particles.push(new Spark(x, y, color));
+        }
+        
+        AudioFX.playExplosion();
+    }
+};
+
+class Rocket {
+    constructor(startX, startY, targetX, targetY) {
+        this.x = startX;
+        this.y = startY;
+        this.tx = targetX;
+        this.ty = targetY;
+        this.type = 'rocket';
+        this.speed = 10 + Math.random() * 4;
+        
+        const angle = Math.atan2(targetY - startY, targetX - startX);
+        this.vx = Math.cos(angle) * this.speed;
+        this.vy = Math.sin(angle) * this.speed;
+        this.isDead = false;
+    }
+    
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        
+        // Gravity pull
+        this.vy += 0.05;
+        
+        if (this.vy >= 0 || this.y <= this.ty) {
+            this.isDead = true;
+        }
+    }
+    
+    draw(ctx) {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+    }
+}
+
+class Spark {
+    constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.type = 'spark';
+        this.color = color;
+        
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1 + Math.random() * 5;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
+        
+        this.gravity = 0.08;
+        this.alpha = 1;
+        this.decay = 0.015 + Math.random() * 0.015;
+        this.isDead = false;
+    }
+    
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += this.gravity;
+        this.alpha -= this.decay;
+        
+        if (this.alpha <= 0) {
+            this.isDead = true;
+        }
+    }
+    
+    draw(ctx) {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 1.8, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = this.color;
+        ctx.fill();
+        ctx.restore();
+    }
 }

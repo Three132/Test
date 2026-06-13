@@ -66,6 +66,21 @@
                     </svg>
                 </div>
             </button>
+
+            <button type="button" class="portal-card" data-category="final_score" aria-label="โหมดประกาศคะแนน Final Score" style="background: linear-gradient(135deg, rgba(255, 75, 92, 0.08) 0%, rgba(214, 0, 255, 0.08) 100%) !important; border: 1.5px dashed rgba(214, 0, 255, 0.4) !important;">
+                <div class="card-icon" style="background: linear-gradient(135deg, #ff4b5c 0%, #d600ff 100%) !important;">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #fff;">
+                        <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                </div>
+                <h2>FinalScore</h2>
+                <p>โหมดลุ้นระทึกประกาศคะแนน FINAL ทุกหมวดหมู่</p>
+                <div class="card-arrow" style="color: #d600ff;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </div>
+            </button>
         </div>
     </div>
 
@@ -693,6 +708,12 @@
                     <p class="panel-subtitle" style="font-size: 0.95rem;">ผลคะแนนรวมทุกเกมของแต่ละทีมสี</p>
                 </div>
                 <div class="summary-actions" style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                    <button type="button" class="btn-submit glow-btn presentation-btn" id="final-mode-btn" style="margin-top: 0 !important; background: linear-gradient(135deg, #ff4b5c 0%, #d600ff 100%) !important; border-color: transparent !important; color: #fff !important; font-weight: 800; display: flex; align-items: center; gap: 0.4rem;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="5 3 19 12 5 21 5 3"/>
+                        </svg>
+                        <span>โหมดลุ้นระทึก (Final Reveal)</span>
+                    </button>
                     <button type="button" class="btn-submit glow-btn presentation-btn" id="presentation-btn" style="margin-top: 0 !important;">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.25rem;">
                             <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
@@ -711,6 +732,22 @@
             
             <div class="summary-chart-container" id="summary-chart-container">
                 <!-- Dynamic Javascript Rendering -->
+            </div>
+
+            <!-- Fireworks Canvas Overlay -->
+            <canvas id="fireworks-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; border-radius: 20px;"></canvas>
+
+            <!-- Suspense Curtain Overlay -->
+            <div class="curtain-overlay" id="curtain-overlay">
+                <div class="curtain-half curtain-left"></div>
+                <div class="curtain-half curtain-right"></div>
+                <div class="curtain-content" id="curtain-content">
+                    <h1 class="curtain-title">🏆 ROBOSPORTDAY 🏆</h1>
+                    <p class="curtain-subtitle">เตรียมพบกับคะแนนสะสมสุดท้ายของแต่ละทีมสี...</p>
+                    <button type="button" class="reveal-final-btn" id="start-reveal-btn">
+                        🎉 เปิดม่านลุ้นคะแนน FINAL 🎉
+                    </button>
+                </div>
             </div>
         </section>
 
@@ -746,6 +783,27 @@
     </div>
 
 
+
+    <!-- FinalScore Category Selection Modal -->
+    <div class="dialog-overlay" id="final-score-modal" role="dialog" aria-modal="true" aria-labelledby="final-modal-title">
+        <div class="dialog-content" style="max-width: 450px; background: rgba(18, 10, 26, 0.95); border: 2px solid #d600ff; box-shadow: 0 0 35px rgba(214, 0, 255, 0.4); border-radius: 24px; padding: 2rem;">
+            <div class="dialog-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 1.25rem;">
+                <h3 id="final-modal-title" style="font-size: 1.35rem; font-weight: 800; color: #ffd600; text-shadow: 0 0 12px rgba(255,214,0,0.5); display: flex; align-items: center; gap: 0.5rem; text-align: left; margin: 0;">
+                    🏆 เลือกหมวดลุ้นคะแนน FINAL
+                </h3>
+                <button type="button" class="icon-btn" id="final-modal-close" aria-label="ปิด" style="color: var(--text-secondary); font-size: 1.75rem; line-height: 1; border: none; background: transparent; cursor: pointer; padding: 0; margin: 0;">&times;</button>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 1.75rem; text-align: left; line-height: 1.4;">เลือกหมวดหมู่กิจกรรมที่ต้องการเปิดม่านประกาศผลคะแนนรวมสะสมสุดท้าย:</p>
+            <div style="display: flex; flex-direction: column; gap: 0.9rem;">
+                <button type="button" class="btn-submit glow-btn" id="final-select-sat" style="background: linear-gradient(135deg, #00f0ff 0%, #0072ff 100%) !important; color: #fff !important; border-color: transparent !important; font-weight: 800; padding: 1rem; border-radius: 14px; font-size: 1.05rem; cursor: pointer; transition: transform 0.2s;">วันเสาร์ (Saturday)</button>
+                <button type="button" class="btn-submit glow-btn" id="final-select-sun-small" style="background: linear-gradient(135deg, #ff4b5c 0%, #cc0033 100%) !important; color: #fff !important; border-color: transparent !important; font-weight: 800; padding: 1rem; border-radius: 14px; font-size: 1.05rem; cursor: pointer; transition: transform 0.2s;">วันอาทิตย์ เด็กเล็ก (Sunday Small)</button>
+                <button type="button" class="btn-submit glow-btn" id="final-select-sun-big" style="background: linear-gradient(135deg, #ffd600 0%, #ff8800 100%) !important; color: #000 !important; border-color: transparent !important; font-weight: 800; padding: 1rem; border-radius: 14px; font-size: 1.05rem; cursor: pointer; transition: transform 0.2s;">วันอาทิตย์ เด็กโต (Sunday Big)</button>
+            </div>
+            <div style="margin-top: 1.5rem; text-align: center;">
+                <button type="button" class="btn-cancel" id="final-modal-cancel" style="width: 100%; border-radius: 14px; padding: 0.85rem; font-weight: 700; cursor: pointer;">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Confirm Clear Score Modal Overlay -->
     <div class="dialog-overlay" id="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title" aria-describedby="dialog-desc">
