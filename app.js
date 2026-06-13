@@ -1200,9 +1200,9 @@ function setActiveGame(gameNum) {
             document.getElementById('pole-form-fields').style.display = 'none';
             DOM.playerNameInput.removeAttribute('required');
             const matchGameName = getActiveGameName(gameNum);
-            const isHockeyMatch = matchGameName === 'Hockey';
+            const isWeightMatch = matchGameName === 'Pick and Place';
             
-            // Update labels for weight (Pick and Place) vs points (Hockey)
+            // Update labels for weight (Pick and Place) vs points (Hockey, Sumo, Pole Fighting)
             const labelA = document.getElementById('match-label-a');
             const labelB = document.getElementById('match-label-b');
             const inputA = document.getElementById('match-weight-a');
@@ -1210,16 +1210,15 @@ function setActiveGame(gameNum) {
             const scoreGroupA = document.getElementById('match-score-a-group');
             const scoreGroupB = document.getElementById('match-score-b-group');
             
-            const isSumoMatch = matchGameName === 'Sumo';
-            if (scoreGroupA) scoreGroupA.style.display = isSumoMatch ? 'none' : 'block';
-            if (scoreGroupB) scoreGroupB.style.display = isSumoMatch ? 'none' : 'block';
+            if (scoreGroupA) scoreGroupA.style.display = 'block';
+            if (scoreGroupB) scoreGroupB.style.display = 'block';
             
-            if (labelA) labelA.textContent = isHockeyMatch ? 'แต้มของทีมที่ 1' : 'น้ำหนักทีมที่ 1 (กิโลกรัม)';
-            if (labelB) labelB.textContent = isHockeyMatch ? 'แต้มของทีมที่ 2' : 'น้ำหนักทีมที่ 2 (กิโลกรัม)';
-            if (inputA) inputA.placeholder = isHockeyMatch ? 'ระบุแต้มของทีมที่ 1...' : 'ระบุน้ำหนักทีมที่ 1...';
-            if (inputB) inputB.placeholder = isHockeyMatch ? 'ระบุแต้มของทีมที่ 2...' : 'ระบุน้ำหนักทีมที่ 2...';
-            if (inputA) inputA.step = isHockeyMatch ? '1' : '0.01';
-            if (inputB) inputB.step = isHockeyMatch ? '1' : '0.01';
+            if (labelA) labelA.textContent = isWeightMatch ? 'น้ำหนักทีมที่ 1 (กิโลกรัม)' : 'แต้มของทีมที่ 1';
+            if (labelB) labelB.textContent = isWeightMatch ? 'น้ำหนักทีมที่ 2 (กิโลกรัม)' : 'แต้มของทีมที่ 2';
+            if (inputA) inputA.placeholder = isWeightMatch ? 'ระบุน้ำหนักทีมที่ 1...' : 'ระบุแต้มของทีมที่ 1...';
+            if (inputB) inputB.placeholder = isWeightMatch ? 'ระบุน้ำหนักทีมที่ 2...' : 'ระบุแต้มของทีมที่ 2...';
+            if (inputA) inputA.step = isWeightMatch ? '0.01' : '1';
+            if (inputB) inputB.step = isWeightMatch ? '0.01' : '1';
             
             DOM.formPanelSubtitle.textContent = `บันทึกผลการแข่งขัน 2 ทีม ใน ${matchGameName}`;
             DOM.submitBtn.querySelector('span').textContent = state.editId !== null ? 'บันทึกการแก้ไข' : 'บันทึกผลการแข่ง';
@@ -1343,6 +1342,8 @@ function checkIfMatchupGame(gameNum, category) {
     if (gameName === 'Pick and Place' && category !== 'sunday_big') return true;
     // Hockey เป็นแมตช์ 1 ต่อ 1 (ใส่แต้ม) เฉพาะวันเสาร์
     if (gameName === 'Hockey' && category === 'saturday') return true;
+    // Pole Fighting เป็นแมตช์ 1 ต่อ 1 เฉพาะวันเสาร์
+    if (gameName === 'Pole Fighting' && category === 'saturday') return true;
     return false;
 }
 
@@ -1439,6 +1440,7 @@ function handleFormSubmit() {
                     state.scores[state.activeGame][index].weightB = weightB;
                     state.scores[state.activeGame][index].playerA = playerA;
                     state.scores[state.activeGame][index].playerB = playerB;
+                    state.scores[state.activeGame][index].matchId = state.activeMatchId || null;
                     syncMatchToGoogleSheet(state.scores[state.activeGame][index]);
                 }
             } else {
@@ -1446,6 +1448,7 @@ function handleFormSubmit() {
                     id: Date.now().toString(),
                     teamA, teamB, winner, scoreA, scoreB,
                     weightA, weightB, playerA, playerB,
+                    matchId: state.activeMatchId || null,
                     timestamp: Date.now()
                 };
                 state.scores[state.activeGame].push(newMatch);
@@ -1874,9 +1877,9 @@ function updateMatchFormUI() {
     const labelA = document.getElementById('match-label-a');
     const labelB = document.getElementById('match-label-b');
     const gameNameNow = getActiveGameName(state.activeGame);
-    const isHockeyMatch = gameNameNow === 'Hockey';
-    const unitTxt = isHockeyMatch ? '(แต้ม)' : '(กิโลกรัม)';
-    const labelKind = isHockeyMatch ? 'แต้ม' : 'น้ำหนัก';
+    const isWeightMatch = gameNameNow === 'Pick and Place';
+    const unitTxt = isWeightMatch ? '(กิโลกรัม)' : '(แต้ม)';
+    const labelKind = isWeightMatch ? 'น้ำหนัก' : 'แต้ม';
     if (labelA) labelA.textContent = `${labelKind}ทีมสี${teamAColorName} ${unitTxt}`;
     if (labelB) labelB.textContent = `${labelKind}ทีมสี${teamBColorName} ${unitTxt}`;
     
@@ -1949,7 +1952,7 @@ function updateMatchPlayerDropdown(team, selectedValue = null) {
 // Check if current game is Pole Fighting (2v2) — รวม Hockey วันอาทิตย์ด้วย
 function checkIfPoleGame(gameNum, category) {
     const gameName = getActiveGameName(gameNum);
-    if (gameName === 'Pole Fighting') return true;
+    if (gameName === 'Pole Fighting' && category !== 'saturday') return true;
     // Hockey วันอาทิตย์ = 2 ทีม × 2 คน (ใช้ฟอร์มแบบ Pole Fighting)
     if (gameName === 'Hockey' && (category === 'sunday_small' || category === 'sunday_big')) return true;
     // Pick and Place เด็กโตวันอาทิตย์ = 2 ทีม × 2 คน (ใช้ฟอร์มแบบ Pole Fighting)
@@ -2114,86 +2117,125 @@ function syncFishingToGoogleSheet(round) {
     });
 }
 
-// Pre-configured matches for Sunday Small (วันอาทิตย์ เด็กเล็ก)
-const SUNDAY_SMALL_MATCHES = {
-    // Game 1 — Bowling (1v1 สีปะทะสี / นับวัตถุที่โดนเทียบกัน)  — รอบสุดท้าย (round 14) = รอบเก็บตก จับเพื่อนรุ่นเดียวกันมาช่วยให้ครบ
+// Pre-configured matches for Saturday (วันเสาร์)
+const SATURDAY_MATCHES = {
     "1": [
-        { "id": 1, "round": 1, "type": "individual", "teamA": "#ffd600", "playerA": "จินดา", "teamB": "#00ff66", "playerB": "ปุงปัง" },
-        { "id": 2, "round": 1, "type": "individual", "teamA": "#ffd600", "playerA": "เซนต์", "teamB": "#00ff66", "playerB": "เชฟ" },
-        { "id": 3, "round": 2, "type": "individual", "teamA": "#00f0ff", "playerA": "กราฟิก", "teamB": "#ff4b5c", "playerB": "ภูผา" },
-        { "id": 4, "round": 2, "type": "individual", "teamA": "#00f0ff", "playerA": "ณคุณ", "teamB": "#ff4b5c", "playerB": "ลอฟต์" },
-        { "id": 5, "round": 3, "type": "individual", "teamA": "#ffd600", "playerA": "คิน", "teamB": "#00ff66", "playerB": "นาคินทร์" },
-        { "id": 6, "round": 3, "type": "individual", "teamA": "#ffd600", "playerA": "ดีเซล", "teamB": "#00ff66", "playerB": "อาเหยียน" },
-        { "id": 7, "round": 4, "type": "individual", "teamA": "#ffd600", "playerA": "Cani", "teamB": "#00f0ff", "playerB": "เอ็ดก้า" },
-        { "id": 8, "round": 4, "type": "individual", "teamA": "#00ff66", "playerA": "ฟลินน์", "teamB": "#ff4b5c", "playerB": "ปุณณ์" },
-        { "id": 9, "round": 5, "type": "individual", "teamA": "#00f0ff", "playerA": "ไทเป", "teamB": "#ff4b5c", "playerB": "นาคิน" },
-        { "id": 10, "round": 5, "type": "individual", "teamA": "#00ff66", "playerA": "ขอบคุณ", "teamB": "#ff4b5c", "playerB": "แมนต้า" },
-        { "id": 11, "round": 6, "type": "individual", "teamA": "#ffd600", "playerA": "พรีมพรีม", "teamB": "#00f0ff", "playerB": "โปรดปราน" },
-        { "id": 12, "round": 6, "type": "individual", "teamA": "#ffd600", "playerA": "ภาคิน", "teamB": "#00f0ff", "playerB": "อะตอมW" },
-        { "id": 13, "round": 7, "type": "individual", "teamA": "#ffd600", "playerA": "ใบบุญ", "teamB": "#00ff66", "playerB": "เลโก้" },
-        { "id": 14, "round": 7, "type": "individual", "teamA": "#ffd600", "playerA": "ก้าว", "teamB": "#00ff66", "playerB": "ปุณณ์ W" },
-        { "id": 15, "round": 8, "type": "individual", "teamA": "#00f0ff", "playerA": "อุ่นใจ", "teamB": "#ff4b5c", "playerB": "ตะวัน" },
-        { "id": 16, "round": 8, "type": "individual", "teamA": "#00f0ff", "playerA": "ปราบ", "teamB": "#ff4b5c", "playerB": "พายุ" },
-        { "id": 17, "round": 9, "type": "individual", "teamA": "#00f0ff", "playerA": "เชอริล", "teamB": "#ff4b5c", "playerB": "ท้องฟ้า" },
-        { "id": 18, "round": 9, "type": "individual", "teamA": "#ffd600", "playerA": "ไบรท์", "teamB": "#00f0ff", "playerB": "ภูเขา" },
-        { "id": 19, "round": 10, "type": "individual", "teamA": "#ffd600", "playerA": "อิงอิง", "teamB": "#00ff66", "playerB": "Glad" },
-        { "id": 20, "round": 10, "type": "individual", "teamA": "#00f0ff", "playerA": "อินเวสต์", "teamB": "#ff4b5c", "playerB": "ยูตะ" },
-        { "id": 21, "round": 11, "type": "individual", "teamA": "#ffd600", "playerA": "ลูกแก้ว", "teamB": "#00f0ff", "playerB": "เท็นเท็น" },
-        { "id": 22, "round": 11, "type": "individual", "teamA": "#00ff66", "playerA": "มีตังค์", "teamB": "#ff4b5c", "playerB": "TinTin" },
-        { "id": 23, "round": 12, "type": "individual", "teamA": "#00ff66", "playerA": "ฟรานส์", "teamB": "#ff4b5c", "playerB": "ฟีนิกซ์" },
-        { "id": 24, "round": 12, "type": "individual", "teamA": "#00ff66", "playerA": "ภัฅ", "teamB": "#ff4b5c", "playerB": "อคิณ" },
-        { "id": 25, "round": 14, "type": "individual", "teamA": "#ff4b5c", "playerA": "อาร์ชี่", "teamB": "#00ff66", "playerB": "ปุณณ์ W" }
+        { "id": 1, "round": 1, "type": "individual", "teamA": "#ff4b5c", "playerA": "ปกป้อง2", "teamB": "#00f0ff", "playerB": "เต็นท์" },
+        { "id": 2, "round": 1, "type": "individual", "teamA": "#ff4b5c", "playerA": "กรรณ", "teamB": "#00f0ff", "playerB": "เมทัล" },
+        { "id": 3, "round": 1, "type": "individual", "teamA": "#ff4b5c", "playerA": "ธีร์", "teamB": "#00f0ff", "playerB": "เจเจ" },
+        { "id": 4, "round": 2, "type": "individual", "teamA": "#ff4b5c", "playerA": "เรสซิ่ง", "teamB": "#00f0ff", "playerB": "ดาวา" },
+        { "id": 5, "round": 2, "type": "individual", "teamA": "#ff4b5c", "playerA": "ไดโน่", "teamB": "#00f0ff", "playerB": "อันดา" },
+        { "id": 6, "round": 2, "type": "individual", "teamA": "#ff4b5c", "playerA": "ข้าวปั้น", "teamB": "#00f0ff", "playerB": "อายชิลด์" }
     ],
-    // Game 2 — Hockey (2v2 สีปะทะสี)  — รอบสุดท้าย (round 14) = รอบเก็บตก จับเพื่อนรุ่นเดียวกันมาช่วยให้ครบ
     "2": [
-        { "id": 1, "round": 1, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "ตะวัน", "playerA2": "พายุ", "playerB1": "ใบบุญ", "playerB2": "อิงอิง" },
-        { "id": 2, "round": 2, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "เอ็ดก้า", "playerA2": "ภูเขา", "playerB1": "มีตังค์", "playerB2": "ขอบคุณ" },
-        { "id": 3, "round": 3, "type": "pole", "teamA": "#ffd600", "teamB": "#00f0ff", "playerA1": "ก้าว", "playerA2": "ลูกแก้ว", "playerB1": "อุ่นใจ", "playerB2": "เชอริล" },
-        { "id": 4, "round": 4, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "เท็นเท็น", "playerA2": "อะตอมW", "playerB1": "ภัฅ", "playerB2": "ฟรานส์" },
-        { "id": 5, "round": 5, "type": "pole", "teamA": "#ff4b5c", "teamB": "#00ff66", "playerA1": "ท้องฟ้า", "playerA2": "ยูตะ", "playerB1": "เลโก้", "playerB2": "นาคินทร์" },
-        { "id": 6, "round": 6, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "ฟีนิกซ์", "playerA2": "TinTin", "playerB1": "ไบรท์", "playerB2": "Cani" },
-        { "id": 7, "round": 7, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "ลอฟต์", "playerA2": "ภูผา", "playerB1": "เซนต์", "playerB2": "คิน" },
-        { "id": 8, "round": 8, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "อินเวสต์", "playerA2": "ไทเป", "playerB1": "Glad", "playerB2": "ปุงปัง" },
-        { "id": 9, "round": 9, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "อาร์ชี่", "playerA2": "นาคิน", "playerB1": "ดีเซล", "playerB2": "จินดา" },
-        { "id": 10, "round": 10, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "ปราบ", "playerA2": "ณคุณ", "playerB1": "ปุณณ์ W", "playerB2": "อาเหยียน" },
-        { "id": 11, "round": 11, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "ปุณณ์", "playerA2": "แมนต้า", "playerB1": "ภาคิน", "playerB2": "พรีมพรีม" },
-        { "id": 12, "round": 12, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "กราฟิก", "playerA2": "โปรดปราน", "playerB1": "เชฟ", "playerB2": "ฟลินน์" },
-        { "id": 13, "round": 14, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "อคิณ", "playerA2": "แมนต้า", "playerB1": "ลูกแก้ว", "playerB2": "ภาคิน" }
+        { "id": 1, "round": 1, "type": "individual", "teamA": "#ff4b5c", "playerA": "ปกป้อง2", "teamB": "#00f0ff", "playerB": "เมทัล" },
+        { "id": 2, "round": 1, "type": "individual", "teamA": "#ff4b5c", "playerA": "กรรณ", "teamB": "#00f0ff", "playerB": "เจเจ" },
+        { "id": 3, "round": 1, "type": "individual", "teamA": "#ff4b5c", "playerA": "ธีร์", "teamB": "#00f0ff", "playerB": "เต็นท์" },
+        { "id": 4, "round": 2, "type": "individual", "teamA": "#ff4b5c", "playerA": "กันย์", "teamB": "#00f0ff", "playerB": "ดาวา" },
+        { "id": 5, "round": 2, "type": "individual", "teamA": "#ff4b5c", "playerA": "เรสซิ่ง", "teamB": "#00f0ff", "playerB": "อายชิลด์" },
+        { "id": 6, "round": 2, "type": "individual", "teamA": "#ff4b5c", "playerA": "ไดโน่", "teamB": "#00f0ff", "playerB": "อันดา" }
     ],
-    // Game 3 — Fishing (4 สี สีละ 1 คน)  — รอบสุดท้าย (round 14) = รอบเก็บตก จับเพื่อนรุ่นเดียวกันมาช่วยให้ครบ
     "3": [
-        { "id": 1, "round": 1, "type": "fishing", "playerYellow": "คิน", "playerGreen": "ปุณณ์ W", "playerBlue": "อินเวสต์", "playerRed": "ยูตะ" },
-        { "id": 2, "round": 2, "type": "fishing", "playerYellow": "Cani", "playerGreen": "ฟรานส์", "playerBlue": "เท็นเท็น", "playerRed": "แมนต้า" },
-        { "id": 3, "round": 3, "type": "fishing", "playerYellow": "จินดา", "playerGreen": "เลโก้", "playerBlue": "ไทเป", "playerRed": "พายุ" },
-        { "id": 4, "round": 4, "type": "fishing", "playerYellow": "พรีมพรีม", "playerGreen": "มีตังค์", "playerBlue": "โปรดปราน", "playerRed": "TinTin" },
-        { "id": 5, "round": 5, "type": "fishing", "playerYellow": "ดีเซล", "playerGreen": "เชฟ", "playerBlue": "เชอริล", "playerRed": "ภูผา" },
-        { "id": 6, "round": 6, "type": "fishing", "playerYellow": "ก้าว", "playerGreen": "ปุงปัง", "playerBlue": "ปราบ", "playerRed": "ตะวัน" },
-        { "id": 7, "round": 7, "type": "fishing", "playerYellow": "อิงอิง", "playerGreen": "อาเหยียน", "playerBlue": "ณคุณ", "playerRed": "ท้องฟ้า" },
-        { "id": 8, "round": 8, "type": "fishing", "playerYellow": "ลูกแก้ว", "playerGreen": "ภัฅ", "playerBlue": "อะตอมW", "playerRed": "ปุณณ์" },
-        { "id": 9, "round": 9, "type": "fishing", "playerYellow": "เซนต์", "playerGreen": "นาคินทร์", "playerBlue": "กราฟิก", "playerRed": "ลอฟต์" },
-        { "id": 10, "round": 10, "type": "fishing", "playerYellow": "ภาคิน", "playerGreen": "ฟลินน์", "playerBlue": "เอ็ดก้า", "playerRed": "ฟีนิกซ์" },
-        { "id": 11, "round": 11, "type": "fishing", "playerYellow": "ไบรท์", "playerGreen": "ขอบคุณ", "playerBlue": "ภูเขา", "playerRed": "อคิณ" },
-        { "id": 12, "round": 12, "type": "fishing", "playerYellow": "ใบบุญ", "playerGreen": "Glad", "playerBlue": "อุ่นใจ", "playerRed": "อาร์ชี่" },
-        { "id": 13, "round": 14, "type": "fishing", "playerYellow": "ใบบุญ", "playerGreen": "ปุงปัง", "playerBlue": "เชอริล", "playerRed": "นาคิน" }
+        { "id": 1, "round": 1, "type": "individual", "teamA": "#ff4b5c", "playerA": "ปกป้อง2", "teamB": "#00f0ff", "playerB": "เจเจ" },
+        { "id": 2, "round": 1, "type": "individual", "teamA": "#ff4b5c", "playerA": "กรรณ", "teamB": "#00f0ff", "playerB": "เต็นท์" },
+        { "id": 3, "round": 1, "type": "individual", "teamA": "#ff4b5c", "playerA": "ธีร์", "teamB": "#00f0ff", "playerB": "เมทัล" },
+        { "id": 4, "round": 2, "type": "individual", "teamA": "#ff4b5c", "playerA": "ข้าวปั้น", "teamB": "#00f0ff", "playerB": "ดาวา" },
+        { "id": 5, "round": 2, "type": "individual", "teamA": "#ff4b5c", "playerA": "กันย์", "teamB": "#00f0ff", "playerB": "อันดา" },
+        { "id": 6, "round": 2, "type": "individual", "teamA": "#ff4b5c", "playerA": "เรสซิ่ง", "teamB": "#00f0ff", "playerB": "อายชิลด์" }
     ],
-    // Game 4 — Pole Fighting (2v2 สีปะทะสี)  — รอบสุดท้าย (round 14) = รอบเก็บตก จับเพื่อนรุ่นเดียวกันมาช่วยให้ครบ
     "4": [
-        { "id": 1, "round": 1, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "เชอริล", "playerA2": "ไทเป", "playerB1": "เลโก้", "playerB2": "อาเหยียน" },
-        { "id": 2, "round": 2, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "ฟีนิกซ์", "playerA2": "ปุณณ์", "playerB1": "ภาคิน", "playerB2": "พรีมพรีม" },
-        { "id": 3, "round": 3, "type": "pole", "teamA": "#ff4b5c", "teamB": "#00ff66", "playerA1": "นาคิน", "playerA2": "ตะวัน", "playerB1": "เชฟ", "playerB2": "ปุงปัง" },
-        { "id": 4, "round": 4, "type": "pole", "teamA": "#ffd600", "teamB": "#00f0ff", "playerA1": "อิงอิง", "playerA2": "ไบรท์", "playerB1": "อินเวสต์", "playerB2": "ปราบ" },
-        { "id": 5, "round": 5, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "กราฟิก", "playerA2": "อุ่นใจ", "playerB1": "ปุณณ์ W", "playerB2": "Glad" },
-        { "id": 6, "round": 6, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "ภูเขา", "playerA2": "เท็นเท็น", "playerB1": "มีตังค์", "playerB2": "ภัฅ" },
-        { "id": 7, "round": 7, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "อาร์ชี่", "playerA2": "ยูตะ", "playerB1": "จินดา", "playerB2": "ดีเซล" },
-        { "id": 8, "round": 8, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "โปรดปราน", "playerA2": "เอ็ดก้า", "playerB1": "ขอบคุณ", "playerB2": "ฟรานส์" },
-        { "id": 9, "round": 9, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "แมนต้า", "playerA2": "อคิณ", "playerB1": "Cani", "playerB2": "ลูกแก้ว" },
-        { "id": 10, "round": 10, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "ภูผา", "playerA2": "พายุ", "playerB1": "คิน", "playerB2": "ใบบุญ" },
-        { "id": 11, "round": 11, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "ลอฟต์", "playerA2": "ท้องฟ้า", "playerB1": "ก้าว", "playerB2": "เซนต์" },
-        { "id": 12, "round": 13, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "ณคุณ", "playerA2": "อะตอมW", "playerB1": "นาคินทร์", "playerB2": "ฟลินน์" },
-        { "id": 13, "round": 14, "type": "pole", "teamA": "#ff4b5c", "teamB": "#00ff66", "playerA1": "TinTin", "playerA2": "ฟีนิกซ์", "playerB1": "ฟลินน์", "playerB2": "ภัฅ" }
+        { "id": 1, "round": 1, "type": "individual", "teamA": "#ff4b5c", "playerA": "ปกป้อง2", "teamB": "#00f0ff", "playerB": "เมทัล" },
+        { "id": 2, "round": 1, "type": "individual", "teamA": "#ff4b5c", "playerA": "กรรณ", "teamB": "#00f0ff", "playerB": "เต็นท์" },
+        { "id": 3, "round": 1, "type": "individual", "teamA": "#ff4b5c", "playerA": "ธีร์", "teamB": "#00f0ff", "playerB": "เจเจ" },
+        { "id": 4, "round": 2, "type": "individual", "teamA": "#ff4b5c", "playerA": "ไดโน่", "teamB": "#00f0ff", "playerB": "ดาวา" },
+        { "id": 5, "round": 2, "type": "individual", "teamA": "#ff4b5c", "playerA": "ข้าวปั้น", "teamB": "#00f0ff", "playerB": "อันดา" },
+        { "id": 6, "round": 2, "type": "individual", "teamA": "#ff4b5c", "playerA": "กันย์", "teamB": "#00f0ff", "playerB": "อายชิลด์" }
     ]
 };
 
+// Pre-configured matches for Sunday Small (วันอาทิตย์ เด็กเล็ก)
+// ตารางแข่ง 4 เกม (ฉบับปรับแก้)
+// กฎ: ไม่ลงรอบติดกัน (เว้นพักทุกคน) | รุ่นปนได้เฉพาะ 1,2 vs 1,2 | ทุกคนลงครบ 4 เกม | คิวไม่ชน
+// หมายเหตุ: Game2 รอบ11 และ Game4 รอบ3 ยังเป็น 'รุ่นปนไม่สมดุล' (1,2 vs 1,1)
+//   เพราะจำนวนสลॉตรุ่น2 ในแต่ละเกม = 23 (เลขคี่) จึงจับคู่ลงตัวทั้งหมดไม่ได้ (ดูคำอธิบายในแชท)
+const SUNDAY_SMALL_MATCHES = {
+    // Game 1 — Bowling (1v1 สีปะทะสี)  — รอบ 14 = รอบเก็บตก จับเพื่อนรุ่นเดียวกันมาช่วย
+    "1": [
+        { "id": 1, "round": 1, "type": "individual", "teamA": "#ffd600", "playerA": "คิน", "teamB": "#00ff66", "playerB": "นาคินทร์" },
+        { "id": 2, "round": 1, "type": "individual", "teamA": "#ffd600", "playerA": "ดีเซล", "teamB": "#00ff66", "playerB": "อาเหยียน" },
+        { "id": 3, "round": 2, "type": "individual", "teamA": "#00f0ff", "playerA": "ณคุณ", "teamB": "#ff4b5c", "playerB": "ภูผา" },
+        { "id": 4, "round": 2, "type": "individual", "teamA": "#00f0ff", "playerA": "กราฟิก", "teamB": "#ff4b5c", "playerB": "ลอฟต์" },
+        { "id": 5, "round": 3, "type": "individual", "teamA": "#ffd600", "playerA": "จินดา", "teamB": "#00ff66", "playerB": "ปุงปัง" },
+        { "id": 6, "round": 3, "type": "individual", "teamA": "#ffd600", "playerA": "เซนต์", "teamB": "#00ff66", "playerB": "เลโก้" },
+        { "id": 7, "round": 4, "type": "individual", "teamA": "#ffd600", "playerA": "ลูกแก้ว", "teamB": "#00f0ff", "playerB": "เอ็ดก้า" },
+        { "id": 8, "round": 4, "type": "individual", "teamA": "#00ff66", "playerA": "ขอบคุณ", "teamB": "#ff4b5c", "playerB": "อคิณ" },
+        { "id": 9, "round": 5, "type": "individual", "teamA": "#00f0ff", "playerA": "ไทเป", "teamB": "#ff4b5c", "playerB": "นาคิน" },
+        { "id": 10, "round": 5, "type": "individual", "teamA": "#00ff66", "playerA": "ฟลินน์", "teamB": "#ff4b5c", "playerB": "แมนต้า" },
+        { "id": 11, "round": 6, "type": "individual", "teamA": "#ffd600", "playerA": "Cani", "teamB": "#00f0ff", "playerB": "โปรดปราน" },
+        { "id": 12, "round": 6, "type": "individual", "teamA": "#ffd600", "playerA": "ภาคิน", "teamB": "#00f0ff", "playerB": "อะตอมW" },
+        { "id": 13, "round": 7, "type": "individual", "teamA": "#ffd600", "playerA": "ใบบุญ", "teamB": "#00ff66", "playerB": "ปุณณ์ W" },
+        { "id": 14, "round": 7, "type": "individual", "teamA": "#ffd600", "playerA": "ก้าว", "teamB": "#00ff66", "playerB": "เชฟ" },
+        { "id": 15, "round": 8, "type": "individual", "teamA": "#00f0ff", "playerA": "อุ่นใจ", "teamB": "#ff4b5c", "playerB": "พายุ" },
+        { "id": 16, "round": 8, "type": "individual", "teamA": "#00f0ff", "playerA": "เชอริล", "teamB": "#ff4b5c", "playerB": "ตะวัน" },
+        { "id": 17, "round": 9, "type": "individual", "teamA": "#00f0ff", "playerA": "ปราบ", "teamB": "#ff4b5c", "playerB": "ยูตะ" },
+        { "id": 18, "round": 9, "type": "individual", "teamA": "#ffd600", "playerA": "พรีมพรีม", "teamB": "#00f0ff", "playerB": "ภูเขา" },
+        { "id": 19, "round": 10, "type": "individual", "teamA": "#ffd600", "playerA": "อิงอิง", "teamB": "#00ff66", "playerB": "ปุณณ์ W" },
+        { "id": 20, "round": 10, "type": "individual", "teamA": "#00f0ff", "playerA": "อินเวสต์", "teamB": "#ff4b5c", "playerB": "อาร์ชี่" },
+        { "id": 21, "round": 11, "type": "individual", "teamA": "#ffd600", "playerA": "ไบรท์", "teamB": "#00f0ff", "playerB": "เท็นเท็น" },
+        { "id": 22, "round": 11, "type": "individual", "teamA": "#00ff66", "playerA": "ภัฅ", "teamB": "#ff4b5c", "playerB": "ฟีนิกซ์" },
+        { "id": 23, "round": 12, "type": "individual", "teamA": "#00ff66", "playerA": "ฟรานส์", "teamB": "#ff4b5c", "playerB": "ปุณณ์" },
+        { "id": 24, "round": 12, "type": "individual", "teamA": "#00ff66", "playerA": "มีตังค์", "teamB": "#ff4b5c", "playerB": "TinTin" },
+        { "id": 25, "round": 14, "type": "individual", "teamA": "#ff4b5c", "playerA": "ท้องฟ้า", "teamB": "#00ff66", "playerB": "Glad" }
+    ],
+    // Game 2 — Hockey (2v2 สีปะทะสี)  — รอบ 14 = รอบเก็บตก จับเพื่อนรุ่นเดียวกันมาช่วย
+    "2": [
+        { "id": 1, "round": 1, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "ตะวัน", "playerA2": "TinTin", "playerB1": "Cani", "playerB2": "อิงอิง" },
+        { "id": 2, "round": 2, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "โปรดปราน", "playerA2": "ภูเขา", "playerB1": "มีตังค์", "playerB2": "ขอบคุณ" },
+        { "id": 3, "round": 3, "type": "pole", "teamA": "#ffd600", "teamB": "#00f0ff", "playerA1": "ใบบุญ", "playerA2": "ก้าว", "playerB1": "ปราบ", "playerB2": "เชอริล" },
+        { "id": 4, "round": 4, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "เท็นเท็น", "playerA2": "อะตอมW", "playerB1": "ภัฅ", "playerB2": "ฟรานส์" },
+        { "id": 5, "round": 5, "type": "pole", "teamA": "#ff4b5c", "teamB": "#00ff66", "playerA1": "พายุ", "playerA2": "ยูตะ", "playerB1": "ปุณณ์ W", "playerB2": "นาคินทร์" },
+        { "id": 6, "round": 6, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "ฟีนิกซ์", "playerA2": "ปุณณ์", "playerB1": "ไบรท์", "playerB2": "ลูกแก้ว" },
+        { "id": 7, "round": 7, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "อาร์ชี่", "playerA2": "นาคิน", "playerB1": "เซนต์", "playerB2": "คิน" },
+        { "id": 8, "round": 8, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "อินเวสต์", "playerA2": "ไทเป", "playerB1": "เลโก้", "playerB2": "ปุงปัง" },
+        { "id": 9, "round": 9, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "ท้องฟ้า", "playerA2": "ภูผา", "playerB1": "ดีเซล", "playerB2": "จินดา" },
+        { "id": 10, "round": 10, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "อุ่นใจ", "playerA2": "ณคุณ", "playerB1": "เชฟ", "playerB2": "Glad" },
+        { "id": 11, "round": 11, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "ลอฟต์", "playerA2": "แมนต้า", "playerB1": "ภาคิน", "playerB2": "พรีมพรีม" },  // <== รุ่นปนไม่สมดุล (เลี่ยงไม่ได้)
+        { "id": 12, "round": 12, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "กราฟิก", "playerA2": "เอ็ดก้า", "playerB1": "อาเหยียน", "playerB2": "ฟลินน์" },
+        { "id": 13, "round": 14, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "อคิณ", "playerA2": "แมนต้า", "playerB1": "ลูกแก้ว", "playerB2": "ภาคิน" }
+    ],
+    // Game 3 — Fishing (4 สี สีละ 1 คน)  — รอบ 14 = รอบเก็บตก จับเพื่อนรุ่นเดียวกันมาช่วย
+    "3": [
+        { "id": 1, "round": 1, "type": "fishing", "playerYellow": "ใบบุญ", "playerGreen": "Glad", "playerBlue": "อุ่นใจ", "playerRed": "ยูตะ" },
+        { "id": 2, "round": 2, "type": "fishing", "playerYellow": "ไบรท์", "playerGreen": "ภัฅ", "playerBlue": "เท็นเท็น", "playerRed": "แมนต้า" },
+        { "id": 3, "round": 3, "type": "fishing", "playerYellow": "คิน", "playerGreen": "เชฟ", "playerBlue": "ไทเป", "playerRed": "นาคิน" },
+        { "id": 4, "round": 4, "type": "fishing", "playerYellow": "พรีมพรีม", "playerGreen": "มีตังค์", "playerBlue": "ภูเขา", "playerRed": "TinTin" },
+        { "id": 5, "round": 5, "type": "fishing", "playerYellow": "ก้าว", "playerGreen": "ปุงปัง", "playerBlue": "เชอริล", "playerRed": "ตะวัน" },
+        { "id": 6, "round": 6, "type": "fishing", "playerYellow": "ดีเซล", "playerGreen": "เลโก้", "playerBlue": "อินเวสต์", "playerRed": "ภูผา" },
+        { "id": 7, "round": 7, "type": "fishing", "playerYellow": "อิงอิง", "playerGreen": "อาเหยียน", "playerBlue": "ณคุณ", "playerRed": "ท้องฟ้า" },
+        { "id": 8, "round": 8, "type": "fishing", "playerYellow": "ภาคิน", "playerGreen": "ฟรานส์", "playerBlue": "เอ็ดก้า", "playerRed": "ฟีนิกซ์" },
+        { "id": 9, "round": 9, "type": "fishing", "playerYellow": "ใบบุญ", "playerGreen": "นาคินทร์", "playerBlue": "กราฟิก", "playerRed": "ลอฟต์" },
+        { "id": 10, "round": 10, "type": "fishing", "playerYellow": "ลูกแก้ว", "playerGreen": "ฟลินน์", "playerBlue": "อะตอมW", "playerRed": "ปุณณ์" },
+        { "id": 11, "round": 11, "type": "fishing", "playerYellow": "Cani", "playerGreen": "ขอบคุณ", "playerBlue": "โปรดปราน", "playerRed": "อคิณ" },
+        { "id": 12, "round": 12, "type": "fishing", "playerYellow": "จินดา", "playerGreen": "ปุงปัง", "playerBlue": "เชอริล", "playerRed": "พายุ" },
+        { "id": 13, "round": 14, "type": "fishing", "playerYellow": "เซนต์", "playerGreen": "ปุณณ์ W", "playerBlue": "ปราบ", "playerRed": "อาร์ชี่" }
+    ],
+    // Game 4 — Pole Fighting (2v2 สีปะทะสี)  — รอบ 14 = รอบเก็บตก จับเพื่อนรุ่นเดียวกันมาช่วย
+    "4": [
+        { "id": 1, "round": 1, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "เชอริล", "playerA2": "อะตอมW", "playerB1": "ฟรานส์", "playerB2": "ปุงปัง" },
+        { "id": 2, "round": 2, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "ฟีนิกซ์", "playerA2": "ปุณณ์", "playerB1": "ภาคิน", "playerB2": "ลูกแก้ว" },
+        { "id": 3, "round": 3, "type": "pole", "teamA": "#ff4b5c", "teamB": "#00ff66", "playerA1": "อาร์ชี่", "playerA2": "ท้องฟ้า", "playerB1": "ปุณณ์ W", "playerB2": "ฟลินน์" },  // <== รุ่นปนไม่สมดุล (เลี่ยงไม่ได้)
+        { "id": 4, "round": 4, "type": "pole", "teamA": "#ffd600", "teamB": "#00f0ff", "playerA1": "อิงอิง", "playerA2": "ดีเซล", "playerB1": "อินเวสต์", "playerB2": "อุ่นใจ" },
+        { "id": 5, "round": 5, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "ปราบ", "playerA2": "กราฟิก", "playerB1": "Glad", "playerB2": "อาเหยียน" },
+        { "id": 6, "round": 6, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "ภูเขา", "playerA2": "เอ็ดก้า", "playerB1": "ภัฅ", "playerB2": "ขอบคุณ" },
+        { "id": 7, "round": 7, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "ลอฟต์", "playerA2": "อคิณ", "playerB1": "จินดา", "playerB2": "พรีมพรีม" },
+        { "id": 8, "round": 8, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "โปรดปราน", "playerA2": "เท็นเท็น", "playerB1": "ฟลินน์", "playerB2": "มีตังค์" },
+        { "id": 9, "round": 9, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "แมนต้า", "playerA2": "TinTin", "playerB1": "ไบรท์", "playerB2": "Cani" },
+        { "id": 10, "round": 10, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "พายุ", "playerA2": "ตะวัน", "playerB1": "เซนต์", "playerB2": "คิน" },
+        { "id": 11, "round": 11, "type": "pole", "teamA": "#ff4b5c", "teamB": "#ffd600", "playerA1": "นาคิน", "playerA2": "ยูตะ", "playerB1": "ก้าว", "playerB2": "ใบบุญ" },
+        { "id": 12, "round": 13, "type": "pole", "teamA": "#00f0ff", "teamB": "#00ff66", "playerA1": "ณคุณ", "playerA2": "ไทเป", "playerB1": "เลโก้", "playerB2": "นาคินทร์" },
+        { "id": 13, "round": 14, "type": "pole", "teamA": "#ff4b5c", "teamB": "#00ff66", "playerA1": "ภูผา", "playerA2": "ฟีนิกซ์", "playerB1": "เชฟ", "playerB2": "ภัฅ" }
+    ]
+};
 
 const SUNDAY_BIG_MATCHES = {
     "1": [
@@ -2714,7 +2756,7 @@ const SUNDAY_BIG_MATCHES = {
 // Player Name Auto-Suggestions Logic (Separated by Category and Color Hex)
 const COLOR_SUGGESTIONS = {
     'saturday': {
-        '#00f0ff': ['ดาวา', 'อันดา', 'อายซิลต์', 'เจเจ', 'เมทัล', 'เมิ้นท์'],
+        '#00f0ff': ['ดาวา', 'อันดา', 'อายชิลต์', 'เจเจ', 'เมทัล', 'เต็นท์'],
         '#ff4b5c': ['กัน', 'ข้าวปั้น', 'เรสซิ่ง', 'ปกป้อง2', 'กรรณ', 'ไดโน่', 'ธีร์']
     },
     'sunday_small': {
@@ -2850,7 +2892,7 @@ function renderLeaderboard() {
     const panelTitle = document.querySelector('#leaderboard-panel .panel-title');
     const panelSubtitle = document.querySelector('#leaderboard-panel .panel-subtitle');
 
-    if (state.activeCategory === 'sunday_small' || state.activeCategory === 'sunday_big') {
+    if (state.activeCategory === 'saturday' || state.activeCategory === 'sunday_small' || state.activeCategory === 'sunday_big') {
         if (panelTitle) {
             panelTitle.innerHTML = `
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -3059,9 +3101,9 @@ function renderLeaderboard() {
             const nameB = HEX_TO_NAME[match.teamB];
             
             const currentGameName = getActiveGameName(state.activeGame);
-            const isHockeyMatchup = currentGameName === 'Hockey';
-            const suffixText = isHockeyMatchup ? " แต้ม" : " กก.";
-            const suffixLabel = isHockeyMatchup ? "แต้ม" : "น้ำหนัก";
+            const isWeightMatchup = currentGameName === 'Pick and Place';
+            const suffixText = isWeightMatchup ? " กก." : " แต้ม";
+            const suffixLabel = isWeightMatchup ? "น้ำหนัก" : "แต้ม";
             card.innerHTML = `
                 <div class="rank-badge" style="font-size: 0.9rem; width: auto; padding: 0 0.5rem; background: rgba(255,255,255,0.03); color: var(--text-secondary);">คู่ที่ ${matchIndex}</div>
                 <div class="player-name" style="display: flex; align-items: center; gap: 0.6rem; overflow: visible; font-size: 1.05rem; width: 100%;">
@@ -3244,7 +3286,9 @@ function renderChart(sortedPlayers) {
 
 // Render the pre-configured match list for Sunday Small
 function renderSundaySmallMatches(allScores, searchQuery) {
-    const dataset = state.activeCategory === 'sunday_big' ? SUNDAY_BIG_MATCHES : SUNDAY_SMALL_MATCHES;
+    const dataset = state.activeCategory === 'sunday_big' 
+        ? SUNDAY_BIG_MATCHES 
+        : (state.activeCategory === 'saturday' ? SATURDAY_MATCHES : SUNDAY_SMALL_MATCHES);
     const activeMatches = dataset[state.activeGame] || [];
     
     // Filter matches based on search query
@@ -3282,106 +3326,195 @@ function renderSundaySmallMatches(allScores, searchQuery) {
         let record = null;
         let isPlayed = false;
 
-        if (match.type === 'individual') {
-    const matchIdA = match.id.toString() + '-A';
-    const matchIdB = match.id.toString() + '-B';
-    const recordA = allScores.find(p => p.matchId === matchIdA || (!p.matchId && p.name === match.playerA));
-    const recordB = allScores.find(p => p.matchId === matchIdB || (!p.matchId && p.name === match.playerB));
-    const isPlayedA = !!recordA;
-    const isPlayedB = !!recordB;
-    isPlayed = isPlayedA && isPlayedB;
+        const isMatchup = checkIfMatchupGame(state.activeGame, state.activeCategory);
+        if (isMatchup) {
+            record = allScores.find(p => p.matchId === match.id.toString() || 
+                (!p.matchId && p.playerA === match.playerA && p.playerB === match.playerB) ||
+                (!p.matchId && p.playerA === match.playerB && p.playerB === match.playerA));
+            isPlayed = !!record;
 
-    if (isPlayed) card.classList.add('played-match');
-    card.style.background = `linear-gradient(90deg, ${match.teamA}0d 0%, ${match.teamB}0d 100%)`;
-    card.style.borderLeft = `4px solid ${match.teamA}`;
-    card.style.borderRight = `4px solid ${match.teamB}`;
+            if (isPlayed) card.classList.add('played-match');
+            card.style.background = `linear-gradient(90deg, ${match.teamA}0d 0%, ${match.teamB}0d 100%)`;
+            card.style.borderLeft = `4px solid ${match.teamA}`;
+            card.style.borderRight = `4px solid ${match.teamB}`;
 
-    const nameAColor = HEX_TO_NAME[match.teamA] || '';
-    const nameBColor = HEX_TO_NAME[match.teamB] || '';
+            const nameAColor = HEX_TO_NAME[match.teamA] || '';
+            const nameBColor = HEX_TO_NAME[match.teamB] || '';
 
-    const hitsLabel = (rec) => {
-        if (!rec) return '';
-        if (rec.score === 100) return '[โดน 3 อัน]';
-        if (rec.score === 60) return '[โดน 2 อัน]';
-        if (rec.score === 30) return '[โดน 1 อัน]';
-        return '[โดน 0 อัน]';
-    };
+            let resultHTML = '';
+            if (isPlayed) {
+                const isWinA = record.winner === 'A';
+                const winLabelA = isWinA ? '🏆 ชนะ' : 'แพ้';
+                const winLabelB = !isWinA ? '🏆 ชนะ' : 'แพ้';
+                
+                const currentGameName = getActiveGameName(state.activeGame);
+                const isWeightMatchup = currentGameName === 'Pick and Place';
+                const suffixText = isWeightMatchup ? " กก." : " แต้ม";
+                const scoreLabelA = (record.weightA !== undefined && record.weightA !== '') ? `${record.weightA}${suffixText}` : `${record.scoreA || 0} แต้ม`;
+                const scoreLabelB = (record.weightB !== undefined && record.weightB !== '') ? `${record.weightB}${suffixText}` : `${record.scoreB || 0} แต้ม`;
 
-    const playBtnHTML = `
-        <button class="btn-primary btn-play-match" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; border-radius: 8px; font-weight: 700; background: var(--accent); color: #000; border: none; cursor: pointer; display: flex; align-items: center; gap: 4px; box-shadow: 0 0 8px var(--accent-glow);">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            เริ่มแข่ง
-        </button>
-    `;
-    const editBtnHTML = (id) => `
-        <button class="icon-btn btn-edit" title="แก้ไขคะแนน" data-id="${id}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-    `;
+                resultHTML = `
+                    <div style="font-size:0.85rem; margin-top:0.3rem; display:flex; gap:1rem;">
+                        <span style="color:${match.teamA}; font-weight:${isWinA ? '700' : 'normal'}">${winLabelA} (${scoreLabelA})</span>
+                        <span style="color:var(--text-muted)">|</span>
+                        <span style="color:${match.teamB}; font-weight:${!isWinA ? '700' : 'normal'}">${winLabelB} (${scoreLabelB})</span>
+                    </div>
+                `;
+            } else {
+                resultHTML = `<div style="font-size:0.85rem; color:var(--text-muted); margin-top:0.3rem;">สถานะ: ยังไม่ได้แข่ง</div>`;
+            }
 
-    card.innerHTML = `
-        <div class="rank-badge" style="font-size: 0.85rem; width: auto; padding: 0 0.5rem; background: rgba(255,255,255,0.03); color: var(--text-secondary);">รอบที่ ${match.id}</div>
-        <div class="player-name" style="display:flex; flex-direction:column; gap:0.4rem; width: 100%; overflow: visible; white-space: normal;">
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap;">
-                <div style="display:flex; align-items:center; gap:0.5rem;">
-                    <span class="color-dot" style="background-color: ${match.teamA}; box-shadow: 0 0 6px ${match.teamA}a0;"></span>
-                    <span style="font-weight: 700; font-size:1.05rem;">น้อง${escapeHTML(match.playerA)}</span>
-                    <span style="color: var(--text-muted); font-size:0.8rem;">(ทีมสี${nameAColor})</span>
-                    ${isPlayedA ? `<span style="font-size:0.85rem; color:#00ff66; font-weight:600; text-shadow:0 0 8px #00ff6640;">คะแนน: ${formatNumber(recordA.score)} แต้ม ${hitsLabel(recordA)}</span>` : `<span style="font-size:0.85rem; color:var(--text-muted);">ยังไม่ได้แข่ง</span>`}
+            card.innerHTML = `
+                <div class="rank-badge" style="font-size: 0.85rem; width: auto; padding: 0 0.5rem; background: rgba(255,255,255,0.03); color: var(--text-secondary);">รอบที่ ${match.id}</div>
+                <div class="player-name" style="display:flex; flex-direction:column; gap:0.1rem; width: 100%; overflow: visible; white-space: normal;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; font-size: 1.05rem;">
+                        <span style="color:${match.teamA}; font-weight:700;">น้อง${escapeHTML(match.playerA)} <span style="font-size:0.8rem; font-weight:normal; color:var(--text-muted);">(ทีมสี${nameAColor})</span></span>
+                        <span style="color:var(--text-muted); font-size:0.8rem; font-weight:bold;">VS</span>
+                        <span style="color:${match.teamB}; font-weight:700;">น้อง${escapeHTML(match.playerB)} <span style="font-size:0.8rem; font-weight:normal; color:var(--text-muted);">(ทีมสี${nameBColor})</span></span>
+                    </div>
+                    ${resultHTML}
                 </div>
-                <div class="card-actions" style="margin:0;">${isPlayedA ? editBtnHTML(recordA.id) : playBtnHTML}</div>
-            </div>
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap;">
-                <div style="display:flex; align-items:center; gap:0.5rem;">
-                    <span class="color-dot" style="background-color: ${match.teamB}; box-shadow: 0 0 6px ${match.teamB}a0;"></span>
-                    <span style="font-weight: 700; font-size:1.05rem;">น้อง${escapeHTML(match.playerB)}</span>
-                    <span style="color: var(--text-muted); font-size:0.8rem;">(ทีมสี${nameBColor})</span>
-                    ${isPlayedB ? `<span style="font-size:0.85rem; color:#00ff66; font-weight:600; text-shadow:0 0 8px #00ff6640;">คะแนน: ${formatNumber(recordB.score)} แต้ม ${hitsLabel(recordB)}</span>` : `<span style="font-size:0.85rem; color:var(--text-muted);">ยังไม่ได้แข่ง</span>`}
+                <div class="card-actions">
+                    ${isPlayed ? `
+                        <button class="icon-btn btn-edit" title="แก้ไขผลแข่ง" data-id="${record.id}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                        <button class="icon-btn btn-delete" title="ลบข้อมูล" data-id="${record.id}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                    ` : `
+                        <button class="btn-primary btn-play-match" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; border-radius: 8px; font-weight: 700; background: var(--accent); color: #000; border: none; cursor: pointer; display: flex; align-items: center; gap: 4px; box-shadow: 0 0 8px var(--accent-glow);">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            เริ่มแข่ง
+                        </button>
+                    `}
                 </div>
-                <div class="card-actions" style="margin:0;">${isPlayedB ? editBtnHTML(recordB.id) : playBtnHTML}</div>
-            </div>
-        </div>
-        <div class="card-actions"></div>
-    `;
+            `;
 
-    const startPlayer = (matchId, hex, name) => {
-        selectColorByHex(hex);
-        DOM.playerNameInput.value = name;
-        state.activeMatchId = matchId;
-        document.querySelectorAll('#objects-hit-group .objects-selector button').forEach(btn => {
-            btn.classList.toggle('active', btn.getAttribute('data-hits') === '0');
-        });
-        DOM.playerScoreInput.value = '0';
-        DOM.scoreForm.scrollIntoView({ behavior: 'smooth' });
-        renderLeaderboard();
-        showToast(`เตรียมตัวคู่ที่ ${match.id}: น้อง${name}`, "info");
-    };
+            if (isPlayed) {
+                card.querySelector('.btn-edit').addEventListener('click', () => {
+                    enterMatchEditMode(record);
+                    state.activeMatchId = match.id.toString();
+                    renderLeaderboard();
+                });
+                card.querySelector('.btn-delete').addEventListener('click', () => deletePlayer(record.id));
+            } else {
+                card.querySelector('.btn-play-match').addEventListener('click', () => {
+                    state.activeMatchId = match.id.toString();
+                    state.match.teamA = match.teamA;
+                    state.match.teamB = match.teamB;
+                    updateMatchFormUI();
+                    updateMatchPlayerDropdown('A', match.playerA);
+                    updateMatchPlayerDropdown('B', match.playerB);
+                    
+                    const wA = document.getElementById('match-weight-a');
+                    const wB = document.getElementById('match-weight-b');
+                    if (wA) wA.value = '';
+                    if (wB) wB.value = '';
+                    
+                    DOM.scoreForm.scrollIntoView({ behavior: 'smooth' });
+                    renderLeaderboard();
+                    showToast(`เตรียมตัวคู่ที่ ${match.id}: น้อง${match.playerA} vs น้อง${match.playerB}`, "info");
+                });
+            }
+        }
+        else if (match.type === 'individual') {
+            const matchIdA = match.id.toString() + '-A';
+            const matchIdB = match.id.toString() + '-B';
+            const recordA = allScores.find(p => p.matchId === matchIdA || (!p.matchId && p.name === match.playerA));
+            const recordB = allScores.find(p => p.matchId === matchIdB || (!p.matchId && p.name === match.playerB));
+            const isPlayedA = !!recordA;
+            const isPlayedB = !!recordB;
+            isPlayed = isPlayedA && isPlayedB;
 
-    const rowAActionEl = card.querySelectorAll('.card-actions')[0];
-    const rowBActionEl = card.querySelectorAll('.card-actions')[1];
+            if (isPlayed) card.classList.add('played-match');
+            card.style.background = `linear-gradient(90deg, ${match.teamA}0d 0%, ${match.teamB}0d 100%)`;
+            card.style.borderLeft = `4px solid ${match.teamA}`;
+            card.style.borderRight = `4px solid ${match.teamB}`;
 
-    if (isPlayedA) {
-        rowAActionEl.querySelector('.btn-edit').addEventListener('click', () => {
-            enterEditMode(recordA);
-            state.activeMatchId = matchIdA;
-            renderLeaderboard();
-        });
-    } else {
-        rowAActionEl.querySelector('.btn-play-match').addEventListener('click', () => {
-            startPlayer(matchIdA, match.teamA, match.playerA);
-        });
-    }
+            const nameAColor = HEX_TO_NAME[match.teamA] || '';
+            const nameBColor = HEX_TO_NAME[match.teamB] || '';
 
-    if (isPlayedB) {
-        rowBActionEl.querySelector('.btn-edit').addEventListener('click', () => {
-            enterEditMode(recordB);
-            state.activeMatchId = matchIdB;
-            renderLeaderboard();
-        });
-    } else {
-        rowBActionEl.querySelector('.btn-play-match').addEventListener('click', () => {
-            startPlayer(matchIdB, match.teamB, match.playerB);
-        });
-    }
-}
+            const hitsLabel = (rec) => {
+                if (!rec) return '';
+                if (getActiveGameName(state.activeGame) !== 'Bowling') return '';
+                if (rec.score === 100) return '[โดน 3 อัน]';
+                if (rec.score === 60) return '[โดน 2 อัน]';
+                if (rec.score === 30) return '[โดน 1 อัน]';
+                return '[โดน 0 อัน]';
+            };
+
+            const playBtnHTML = `
+                <button class="btn-primary btn-play-match" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; border-radius: 8px; font-weight: 700; background: var(--accent); color: #000; border: none; cursor: pointer; display: flex; align-items: center; gap: 4px; box-shadow: 0 0 8px var(--accent-glow);">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    เริ่มแข่ง
+                </button>
+            `;
+            const editBtnHTML = (id) => `
+                <button class="icon-btn btn-edit" title="แก้ไขคะแนน" data-id="${id}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+            `;
+
+            card.innerHTML = `
+                <div class="rank-badge" style="font-size: 0.85rem; width: auto; padding: 0 0.5rem; background: rgba(255,255,255,0.03); color: var(--text-secondary);">รอบที่ ${match.id}</div>
+                <div class="player-name" style="display:flex; flex-direction:column; gap:0.4rem; width: 100%; overflow: visible; white-space: normal;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap;">
+                        <div style="display:flex; align-items:center; gap:0.5rem;">
+                            <span class="color-dot" style="background-color: ${match.teamA}; box-shadow: 0 0 6px ${match.teamA}a0;"></span>
+                            <span style="font-weight: 700; font-size:1.05rem;">น้อง${escapeHTML(match.playerA)}</span>
+                            <span style="color: var(--text-muted); font-size:0.8rem;">(ทีมสี${nameAColor})</span>
+                            ${isPlayedA ? `<span style="font-size:0.85rem; color:#00ff66; font-weight:600; text-shadow:0 0 8px #00ff6640;">คะแนน: ${formatNumber(recordA.score)} แต้ม ${hitsLabel(recordA)}</span>` : `<span style="font-size:0.85rem; color:var(--text-muted);">ยังไม่ได้แข่ง</span>`}
+                        </div>
+                        <div class="card-actions" style="margin:0;">${isPlayedA ? editBtnHTML(recordA.id) : playBtnHTML}</div>
+                    </div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap;">
+                        <div style="display:flex; align-items:center; gap:0.5rem;">
+                            <span class="color-dot" style="background-color: ${match.teamB}; box-shadow: 0 0 6px ${match.teamB}a0;"></span>
+                            <span style="font-weight: 700; font-size:1.05rem;">น้อง${escapeHTML(match.playerB)}</span>
+                            <span style="color: var(--text-muted); font-size:0.8rem;">(ทีมสี${nameBColor})</span>
+                            ${isPlayedB ? `<span style="font-size:0.85rem; color:#00ff66; font-weight:600; text-shadow:0 0 8px #00ff6640;">คะแนน: ${formatNumber(recordB.score)} แต้ม ${hitsLabel(recordB)}</span>` : `<span style="font-size:0.85rem; color:var(--text-muted);">ยังไม่ได้แข่ง</span>`}
+                        </div>
+                        <div class="card-actions" style="margin:0;">${isPlayedB ? editBtnHTML(recordB.id) : playBtnHTML}</div>
+                    </div>
+                </div>
+                <div class="card-actions"></div>
+            `;
+
+            const startPlayer = (matchId, hex, name) => {
+                selectColorByHex(hex);
+                DOM.playerNameInput.value = name;
+                state.activeMatchId = matchId;
+                document.querySelectorAll('#objects-hit-group .objects-selector button').forEach(btn => {
+                    btn.classList.toggle('active', btn.getAttribute('data-hits') === '0');
+                });
+                DOM.playerScoreInput.value = '0';
+                DOM.scoreForm.scrollIntoView({ behavior: 'smooth' });
+                renderLeaderboard();
+                showToast(`เตรียมตัวคู่ที่ ${match.id}: น้อง${name}`, "info");
+            };
+
+            const rowAActionEl = card.querySelectorAll('.card-actions')[0];
+            const rowBActionEl = card.querySelectorAll('.card-actions')[1];
+
+            if (isPlayedA) {
+                rowAActionEl.querySelector('.btn-edit').addEventListener('click', () => {
+                    enterEditMode(recordA);
+                    state.activeMatchId = matchIdA;
+                    renderLeaderboard();
+                });
+            } else {
+                rowAActionEl.querySelector('.btn-play-match').addEventListener('click', () => {
+                    startPlayer(matchIdA, match.teamA, match.playerA);
+                });
+            }
+
+            if (isPlayedB) {
+                rowBActionEl.querySelector('.btn-edit').addEventListener('click', () => {
+                    enterEditMode(recordB);
+                    state.activeMatchId = matchIdB;
+                    renderLeaderboard();
+                });
+            } else {
+                rowBActionEl.querySelector('.btn-play-match').addEventListener('click', () => {
+                    startPlayer(matchIdB, match.teamB, match.playerB);
+                });
+            }
+        }
         else if (match.type === 'pole') {
             // Find score for Game 2 (Hockey) & Game 4 (Pole Fighting)
             record = allScores.find(p => p.matchId === match.id.toString() || (!p.matchId && p.playerA1 === match.playerA1 && p.playerA2 === match.playerA2 && p.playerB1 === match.playerB1 && p.playerB2 === match.playerB2));
