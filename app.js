@@ -524,14 +524,28 @@ function setupEventListeners() {
         clearMode = 'active_game';
         DOM.dialogTitle.textContent = 'ล้างคะแนนเกมนี้?';
         DOM.dialogDesc.textContent = `คุณแน่ใจหรือไม่ว่าต้องการล้างคะแนนของผู้เล่นทั้งหมดใน ${getActiveGameName(state.activeGame)}? ข้อมูลนี้ไม่สามารถกู้คืนได้`;
+        
+        const passcodeEl = document.getElementById('clear-passcode-input');
+        const errorEl = document.getElementById('clear-passcode-error');
+        if (passcodeEl) passcodeEl.value = '';
+        if (errorEl) errorEl.style.display = 'none';
+        
         DOM.confirmDialog.classList.add('open');
+        if (passcodeEl) setTimeout(() => passcodeEl.focus(), 100);
     });
 
     DOM.clearAllDataBtn.addEventListener('click', () => {
         clearMode = 'all_games';
         DOM.dialogTitle.textContent = 'ล้างคะแนนทั้งหมดทุกเกม?';
         DOM.dialogDesc.textContent = 'คุณแน่ใจหรือไม่ว่าต้องการล้างคะแนนของผู้เล่นในทุกเกม (Game 1 - 4)? ข้อมูลนี้ไม่สามารถกู้คืนได้';
+        
+        const passcodeEl = document.getElementById('clear-passcode-input');
+        const errorEl = document.getElementById('clear-passcode-error');
+        if (passcodeEl) passcodeEl.value = '';
+        if (errorEl) errorEl.style.display = 'none';
+        
         DOM.confirmDialog.classList.add('open');
+        if (passcodeEl) setTimeout(() => passcodeEl.focus(), 100);
     });
 
     DOM.dialogCancelBtn.addEventListener('click', () => {
@@ -539,13 +553,30 @@ function setupEventListeners() {
     });
 
     DOM.dialogConfirmBtn.addEventListener('click', () => {
-        if (clearMode === 'active_game') {
-            clearActiveGameScores();
-        } else if (clearMode === 'all_games') {
-            clearAllGamesScores();
+        const passcodeEl = document.getElementById('clear-passcode-input');
+        const errorEl = document.getElementById('clear-passcode-error');
+        
+        if (passcodeEl && passcodeEl.value === '1234') {
+            if (clearMode === 'active_game') {
+                clearActiveGameScores();
+            } else if (clearMode === 'all_games') {
+                clearAllGamesScores();
+            }
+            DOM.confirmDialog.classList.remove('open');
+        } else {
+            if (errorEl) errorEl.style.display = 'block';
+            showToast("รหัสผ่านไม่ถูกต้อง!", "error");
         }
-        DOM.confirmDialog.classList.remove('open');
     });
+
+    const clearPasscodeEl = document.getElementById('clear-passcode-input');
+    if (clearPasscodeEl) {
+        clearPasscodeEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                DOM.dialogConfirmBtn.click();
+            }
+        });
+    }
 
     // Connection Sync Config Modal Triggers
     DOM.sheetsConfigBtn.addEventListener('click', () => {

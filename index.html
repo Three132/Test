@@ -815,6 +815,11 @@
             </div>
             <h3 id="dialog-title" style="font-size: 1.3rem; font-weight: 700;">ล้างคะแนนทั้งหมด?</h3>
             <p id="dialog-desc" style="color: var(--text-secondary); font-size: 0.95rem;">คุณแน่ใจหรือไม่ว่าต้องการล้างคะแนนของผู้เล่นทั้งหมดในเกมนี้? ข้อมูลนี้ไม่สามารถกู้คืนได้</p>
+            <div style="margin-top: 1rem; margin-bottom: 1.25rem; text-align: left;">
+                <label for="clear-passcode-input" style="font-size: 0.85rem; color: var(--text-secondary); display: block; margin-bottom: 0.4rem;">กรุณากรอกรหัสผ่านเพื่อยืนยัน:</label>
+                <input type="password" id="clear-passcode-input" placeholder="ป้อนรหัสผ่าน" autocomplete="off" style="width: 100%; padding: 0.75rem; border-radius: 10px; background: var(--bg-input); border: 1px solid var(--border-color); color: #fff; text-align: center; font-size: 1.1rem; font-weight: bold; letter-spacing: 0.25rem;">
+                <div id="clear-passcode-error" style="color: #ff4b5c; font-size: 0.8rem; margin-top: 0.4rem; display: none; text-align: center;">รหัสผ่านไม่ถูกต้อง!</div>
+            </div>
             <div class="dialog-buttons">
                 <button type="button" class="btn-cancel" id="dialog-cancel-btn">ยกเลิก</button>
                 <button type="button" class="btn-confirm" id="dialog-confirm-btn">ยืนยันการล้าง</button>
